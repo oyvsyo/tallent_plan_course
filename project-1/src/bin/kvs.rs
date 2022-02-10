@@ -26,13 +26,13 @@ fn main() {
     // matches just as you would the top level app
     match &cli.command {
         Commands::Set { key, value } => {
-            panic!("unimplemented Set")
+            panic!("unimplemented Set {} {}", key, value)
         }
         Commands::Get { key } => {
-            panic!("unimplemented Get")
+            panic!("unimplemented Get {}", key)
         }
         Commands::Rm { key} => {
-            panic!("unimplemented Rm")
+            panic!("unimplemented Rm {}", key)
         }
     }
 }

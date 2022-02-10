@@ -42,3 +42,9 @@ impl KvStore {
         self.storage.remove(key.as_str());
     }
 }
+
+ impl Default for KvStore {
+     fn default() -> Self {
+         Self::new()
+     }
+ }
