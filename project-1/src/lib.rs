@@ -9,12 +9,13 @@ pub struct KvStore {
 /// Usage
 /// ```rust
 /// # use std::error::Error;
+/// # use assert_cmd::prelude::*;
 /// #
 /// # fn main() -> Result<(), Box<dyn Error>> {
 /// use kvs::KvStore;
 /// let mut store = KvStore::new();
 /// store.set("key1".to_owned(), "value1".to_owned());
-/// store.get("key2".to_owned());
+/// assert_eq!(store.get("key1".to_owned()), Some("value1".to_owned()));
 /// store.remove("key1".to_owned());
 /// #
 /// #     Ok(())
