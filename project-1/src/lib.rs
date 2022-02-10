@@ -11,6 +11,7 @@ pub struct KvStore {
 /// # use std::error::Error;
 /// #
 /// # fn main() -> Result<(), Box<dyn Error>> {
+/// use kvs::KvStore;
 /// let mut store = KvStore::new();
 /// store.set("key1".to_owned(), "value1".to_owned());
 /// store.get("key2".to_owned());
