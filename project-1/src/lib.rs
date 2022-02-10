@@ -1,11 +1,13 @@
+#![deny(missing_docs)]
+//! Module with key-value storage
 use std::collections::HashMap;
 
+/// In memory key value storage String:String
 #[derive(Debug)]
 pub struct KvStore {
     storage: HashMap<String, String>
 }
 
-/// In memory key value storage String:String
 /// Usage
 /// ```rust
 /// # use std::error::Error;
@@ -21,7 +23,9 @@ pub struct KvStore {
 /// #     Ok(())
 /// # }
 /// ```
+
 impl KvStore {
+    /// Create new instance
     pub fn new() -> Self {
         Self {storage: HashMap::new()}
     }
