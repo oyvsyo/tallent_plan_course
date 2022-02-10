@@ -5,7 +5,7 @@ use std::collections::HashMap;
 /// In memory key value storage String:String
 #[derive(Debug)]
 pub struct KvStore {
-    storage: HashMap<String, String>
+    storage: HashMap<String, String>,
 }
 
 /// Usage
@@ -27,7 +27,9 @@ pub struct KvStore {
 impl KvStore {
     /// Create new instance
     pub fn new() -> Self {
-        Self {storage: HashMap::new()}
+        Self {
+            storage: HashMap::new(),
+        }
     }
     /// Set up value by key into KVS
     pub fn set(&mut self, key: String, value: String) {
@@ -43,8 +45,8 @@ impl KvStore {
     }
 }
 
- impl Default for KvStore {
-     fn default() -> Self {
-         Self::new()
-     }
- }
+impl Default for KvStore {
+    fn default() -> Self {
+        Self::new()
+    }
+}

@@ -1,7 +1,12 @@
 use clap::{AppSettings, Parser, Subcommand};
 
 #[derive(Parser)]
-#[clap(author, version, about, long_about = "Key-Value memory storage, String:String")]
+#[clap(
+    author,
+    version,
+    about,
+    long_about = "Key-Value memory storage, String:String"
+)]
 #[clap(global_setting(AppSettings::PropagateVersion))]
 #[clap(global_setting(AppSettings::UseLongFormatForHelpSubcommand))]
 struct Cli {
@@ -14,9 +19,9 @@ enum Commands {
     /// Set up value by key into KVS
     Set { key: String, value: String },
     /// Get value by key
-    Get { key: String},
+    Get { key: String },
     /// Removes value by key
-    Rm { key: String}
+    Rm { key: String },
 }
 
 fn main() {
@@ -31,7 +36,7 @@ fn main() {
         Commands::Get { key } => {
             panic!("unimplemented Get {}", key)
         }
-        Commands::Rm { key} => {
+        Commands::Rm { key } => {
             panic!("unimplemented Rm {}", key)
         }
     }
