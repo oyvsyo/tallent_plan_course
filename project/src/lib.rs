@@ -12,13 +12,40 @@ use std::fmt::{Display, Formatter};
 use serde::{Deserialize, Serialize};
 
 
+#[derive(Debug)]
+pub enum KVSError {
+    GeneralKVSError
+}
+
+impl fmt::Display for KVSError {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "No matching cities with a population were found.")
+    }
+}
+
+impl Error for KVSError {
+    fn description(&self) -> &str {
+        "KVS error .. please get some help"
+    }
+}
+
+// TODO: its duplicated in kvs.rs for cli usage
+#[derive(Serialize, Deserialize)]
+enum KVSCommands {
+    /// Set up value by key into KVS
+    Set { key: String, value: String },
+    /// Get value by key
+    Get { key: String },
+    /// Removes value by key
+    Rm { key: String },
+}
+
 /// Usage
 /// ```rust
 /// # use std::error::Error;
 /// # use assert_cmd::prelude::*;
-/// # use std::path::PathBuf;
 /// # fn main() -> Result<(), Box<dyn Error>> {
-///
+/// use std::path::PathBuf;
 /// use kvs::KvStore;
 ///
 /// let mut path_buf = PathBuf::from(".");
@@ -35,38 +62,6 @@ use serde::{Deserialize, Serialize};
 
 /// In memory key value storage String:String
 ///
-
-#[derive(Debug)]
-pub enum KVSError {
-    GeneralKVSError
-}
-
-impl fmt::Display for KVSError {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "No matching cities with a population were found.")
-    }
-}
-
-impl Error for KVSError {
-    fn description(&self) -> &str {
-        "Fuck"
-    }
-}
-
-pub type KVSResult<T> = Result<T, KVSError>;
-
-// TODO: its duplicated in kvs.rs for cli usage
-#[derive(Serialize, Deserialize)]
-enum KVSCommands {
-    /// Set up value by key into KVS
-    Set { key: String, value: String },
-    /// Get value by key
-    Get { key: String },
-    /// Removes value by key
-    Rm { key: String },
-}
-
-
 #[derive(Debug)]
 pub struct KvStore {
     storage: HashMap<String, String>,
@@ -101,8 +96,8 @@ impl KvStore {
         for (i, line) in buf_reader.lines().enumerate() {
             let line_str: String = line.expect("cant read");
             let cmd: KVSCommands = serde_json::from_str(
-                line_str.as_str()).expect("cant parse"
-            );
+                line_str.as_str()
+            ).expect("cant parse");
             match cmd {
                 KVSCommands::Set { key, value } => {
                     self.storage.insert(key.to_owned(), value.to_owned());
