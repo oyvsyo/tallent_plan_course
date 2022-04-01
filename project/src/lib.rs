@@ -2,19 +2,14 @@
 //! Module with key-value storage
 use std::collections::HashMap;
 use std::path::{PathBuf,Path};
-use std::fs::metadata;
-// use std::io::{BufReader, BufWriter};
 use std::ops::Add;
 use std::fs::{write, OpenOptions, File};
-use std::io::SeekFrom;
-use std::io::{Write};
-use std::io::{self, BufRead};
+use std::io::{self, BufRead, Write, SeekFrom};
 use std::io::BufReader;
-use serde::{Deserialize, Serialize};
 use std::error::Error;
 use std::fmt;
 use std::fmt::{Display, Formatter};
-// use serde_json::Result;
+use serde::{Deserialize, Serialize};
 
 
 /// Usage
@@ -40,8 +35,7 @@ use std::fmt::{Display, Formatter};
 
 /// In memory key value storage String:String
 ///
-///
-///
+
 #[derive(Debug)]
 pub enum KVSError {
     GeneralKVSError
@@ -59,13 +53,6 @@ impl Error for KVSError {
     }
 }
 
-
-// impl From<String> for KVSError{
-//
-//     fn from() -> String{
-//         String::new()
-//     }
-// }
 pub type KVSResult<T> = Result<T, KVSError>;
 
 // TODO: its duplicated in kvs.rs for cli usage
@@ -90,10 +77,6 @@ pub struct KvStore {
 impl KvStore {
     /// Create new instance
     pub fn new(path: PathBuf) -> Result<Self, String> {
-        // let mut file = File::open(path.).expect("sksmks");
-        // let mut buf_reader = BufReader::new(file);
-        // let mut buf_writer = BufWriter::new(&file);
-        // println!("--------------  {:?}", path);
         let file = OpenOptions::new()
             .create(true)
             .write(true)
@@ -109,7 +92,6 @@ impl KvStore {
             len: file_length,
             file
         };
-        // let lsl = obj::open(path);
         obj.create_index();
         Ok(obj)
     }
@@ -124,12 +106,9 @@ impl KvStore {
             match cmd {
                 KVSCommands::Set { key, value } => {
                     self.storage.insert(key.to_owned(), value.to_owned());
-                    // self.storage.insert(key.to_owned(), i.to_string());
-                    // println!("value = {}", value)
                 }
                 KVSCommands::Rm { key} => {
                     self.storage.remove(key.as_str());
-                    // println!("remove = {}", key)
                 }
                 _ => ()
             }
@@ -154,13 +133,6 @@ impl KvStore {
     /// Get value by key
     pub fn get(&self, key: String) -> Result<Option<String>, String> {
         let maybe_index = self.storage.get(key.as_str()).cloned();
-        // match maybe_index {
-        //     Some(i) => {
-        //         let index: usize = i.parse().unwrap();
-        //     }
-        // }
-        // maybe_index
-
         Ok(maybe_index)
     }
     /// Removes value by key
@@ -178,15 +150,7 @@ impl KvStore {
     /// Open the KvStore at a given path. Return the KvStore.
     pub fn open(path: &Path) -> Result<KvStore, String> {
         let mut path_buf = path.to_path_buf();
-        let md = metadata(path_buf.as_path()).unwrap();
-        // if md.is_dir() {
         path_buf.push("file.bk");
         KvStore::new(path_buf)
     }
 }
-
-// impl Default for KvStore {
-//     fn default() -> Self {
-//         Self::new()
-//     }
-// }
