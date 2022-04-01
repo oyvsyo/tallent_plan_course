@@ -69,7 +69,6 @@ fn cli_get_stored() -> Result<(), String>  {
     store.set("key1".to_owned(), "value1".to_owned())?;
     store.set("key2".to_owned(), "value2".to_owned())?;
     drop(store);
-
     Command::cargo_bin("kvs")
         .unwrap()
         .args(&["get", "key1"])
