@@ -4,12 +4,12 @@ use std::collections::HashMap;
 use std::path::{PathBuf,Path};
 use std::ops::Add;
 use std::fs::{write, OpenOptions, File};
-use std::io::{self, BufRead, Write, SeekFrom};
-use std::io::BufReader;
+use std::io::{self, Write, Read, BufRead, BufWriter, BufReader, Seek, SeekFrom};
 use std::error::Error;
 use std::fmt;
 use std::fmt::{Display, Formatter};
 use serde::{Deserialize, Serialize};
+use serde_json::{Value, Deserializer};
 
 
 #[derive(Debug)]
@@ -40,6 +40,12 @@ enum KVSCommands {
     Rm { key: String },
 }
 
+#[derive(Debug,Clone)]
+struct KVSPosition {
+    position: u64,
+    len: usize
+}
+
 /// Usage
 /// ```rust
 /// # use std::error::Error;
@@ -64,7 +70,7 @@ enum KVSCommands {
 ///
 #[derive(Debug)]
 pub struct KvStore {
-    storage: HashMap<String, String>,
+    storage: HashMap<String, KVSPosition>,
     len: usize,
     file: File
 }
@@ -87,27 +93,34 @@ impl KvStore {
             len: file_length,
             file
         };
-        obj.create_index();
+        obj.create_index().expect("Cant create index");
         Ok(obj)
     }
 
-    fn create_index(&mut self) -> Result<(), String> {
+    fn create_index(&mut self) -> Result<(), KVSError> {
         let buf_reader = BufReader::new(&self.file);
-        for (i, line) in buf_reader.lines().enumerate() {
-            let line_str: String = line.expect("cant read");
-            let cmd: KVSCommands = serde_json::from_str(
-                line_str.as_str()
-            ).expect("cant parse");
+
+        let mut stream = Deserializer::from_reader(buf_reader).into_iter::<KVSCommands>();
+        let mut start = 0;
+        while let Some(Ok(cmd)) = stream.next() {
+            let end = stream.byte_offset();
+            let len =  end - start;
+            // println!("start, end: {} {}", start, end);
+            let index = KVSPosition{
+                position: start as u64,
+                len: len as usize
+            };
+            // println!("{:?}", index);
+            start = end;
             match cmd {
-                KVSCommands::Set { key, value } => {
-                    self.storage.insert(key.to_owned(), value.to_owned());
+                KVSCommands::Set { key, value: _ } => {
+                    self.storage.insert(key.to_owned(), index);
                 }
-                KVSCommands::Rm { key} => {
+                KVSCommands::Rm { key } => {
                     self.storage.remove(key.as_str());
                 }
                 _ => ()
             }
-            self.len = i
         }
         Ok(())
     }
@@ -120,25 +133,63 @@ impl KvStore {
         };
         let cmd_str = serde_json::to_string(&cmd)
             .expect("Cant serialize ((");
-        &self.file.write_all(cmd_str.add("\n").as_bytes())
+
+        // move to end of the file and then write
+        let _ = &self.file.seek(SeekFrom::End(0 as i64));
+        let pos_result = self.file.stream_position();
+
+        let _ = &self.file.write_all(cmd_str.as_bytes())
             .expect("Cant write to file");
-        self.storage.insert(key.clone(), value.clone());
-        Ok(())
+        match pos_result {
+            Ok(pos) => {
+                let index = KVSPosition{
+                    position: pos,
+                    len: cmd_str.len()
+                };
+                self.storage.insert(key.clone(), index);
+                Ok(())
+            },
+            Err(_) => Err("No value, file corrupted".to_owned())
+        }
     }
     /// Get value by key
     pub fn get(&self, key: String) -> Result<Option<String>, String> {
-        let maybe_index = self.storage.get(key.as_str()).cloned();
-        Ok(maybe_index)
+        // println!("{:?}", self.storage);
+        let record_option = self.storage.get(
+            key.as_str()
+        );
+        match record_option {
+            Some(record) => {
+                let mut buf_reader = BufReader::new(&self.file);
+
+                let mut buf = String::new();
+                buf_reader.seek(SeekFrom::Start(record.position)).expect("Cant seek");
+                let mut handle = buf_reader.take(record.len as u64);
+                handle.read_to_string(&mut buf).expect("cant read");
+                let cmd: KVSCommands = serde_json::from_str(
+                    buf.as_str()
+                ).expect("cant parse");
+
+                match cmd {
+                    KVSCommands::Set {key: _, value} => Ok(Option::from(value)),
+                    _ => Err("No value, file corrupted".to_owned())
+                }
+            }
+            None => Ok(None)
+        }
     }
     /// Removes value by key
     pub fn remove(&mut self, key: String) -> Result<(), KVSError> {
         let cmd = KVSCommands::Rm { key: key.clone() };
         let cmd_str = serde_json::to_string(&cmd)
             .expect("Cant serialize ((");
-        &self.file.write_all(cmd_str.add("\n").as_bytes())
+
+        // move to end of the file and then write
+        let _ = &self.file.seek(SeekFrom::End(0 as i64));
+        let _ =&self.file.write_all(cmd_str.add("\n").as_bytes())
             .expect("Cant write to file");
         match self.storage.remove(key.as_str()) {
-            Some(v) => Ok(()),
+            Some(_) => Ok(()),
             None => Err(KVSError::GeneralKVSError)
         }
     }

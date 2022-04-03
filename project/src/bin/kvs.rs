@@ -1,7 +1,7 @@
-use std::path::PathBuf;
+use std::path::Path;
 use clap::{AppSettings, Parser, Subcommand};
 use kvs::{KvStore};
-
+use std::error::Error;
 
 #[derive(Parser)]
 #[clap(
@@ -30,12 +30,12 @@ enum Commands {
 fn main() {
     let cli = Cli::parse();
 
-    let mut path_buf = PathBuf::from(".");
-    path_buf.push("file.bk");
+    let path = Path::new(".");
 
     // You can check for the existence of subcommands, and if found use their
     // matches just as you would the top level app
-    let mut kvs_obj = KvStore::new(path_buf).unwrap();
+    let mut kvs_obj = KvStore::open(path).expect("Cant create store");
+
     match &cli.command {
         Commands::Set { key, value } => {
             kvs_obj.set(key.to_owned(), value.to_owned());
