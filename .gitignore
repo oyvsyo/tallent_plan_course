@@ -8,3 +8,5 @@ talent-plan/
 **/*.rs.bk
 
 .idea/
+workspace.code-workspace
+
