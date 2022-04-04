@@ -3,17 +3,27 @@ on:
     types: [created]
 name: Handle Release
 jobs:
-  generate:
-    name: Create release-artifacts
+  release:
+    name: release ${{ matrix.target }} (with non-required env)
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - target: x86_64-pc-windows-gnu
+            archive: zip
+          - target: x86_64-unknown-linux-musl
+            archive: tar.gz
+          - target: x86_64-apple-darwin
+            archive: zip
     steps:
-      - name: Checkout the repository
-        uses: actions/checkout@master
-      - name: Generate the artifacts
-        uses: skx/github-action-build@master
-      - name: Upload the artifacts
-        uses: skx/github-action-publish-binaries@master
+      - uses: actions/checkout@master
+      - name: Compile and release
+        uses: rust-build/rust-build.action@master
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          args: 'kvs'
+          RUSTTARGET: ${{ matrix.target }}
+          EXTRA_FILES: "README.md"
+          SRC_DIR: "project"
+          ARCHIVE_TYPES: ${{ matrix.archive }}
+          MINIFY: "yes"
