@@ -1,14 +1,13 @@
 use std::path::Path;
 use clap::{AppSettings, Parser, Subcommand};
 use kvs::{KvStore};
-use std::error::Error;
 
 #[derive(Parser)]
 #[clap(
     author,
     version,
     about,
-    long_about = "Key-Value memory storage, String:String"
+    long_about = "Key-Value storage, String:String"
 )]
 #[clap(global_setting(AppSettings::PropagateVersion))]
 #[clap(global_setting(AppSettings::UseLongFormatForHelpSubcommand))]
@@ -38,7 +37,8 @@ fn main() {
 
     match &cli.command {
         Commands::Set { key, value } => {
-            kvs_obj.set(key.to_owned(), value.to_owned());
+            kvs_obj.set(key.to_owned(), value.to_owned())
+                .expect("Cant set value");
         }
         Commands::Get { key } => {
             match kvs_obj.get(key.to_string()) {
@@ -55,7 +55,7 @@ fn main() {
         }
         Commands::Rm { key } => {
             match kvs_obj.remove(key.to_string()) {
-                Err(E) => {
+                Err(_) => {
                     print!("Key not found");
                     panic!()
                 },
