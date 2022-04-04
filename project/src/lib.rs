@@ -70,8 +70,7 @@ struct KVSPosition {
 pub struct KvStore {
     storage: HashMap<String, KVSPosition>,
     file_len: usize,
-    file: File,
-    is_compaction: bool
+    file: File
 }
 
 impl KvStore {
@@ -90,7 +89,6 @@ impl KvStore {
         let mut obj = Self {
             storage: key_line_map,
             file_len: file_length,
-            is_compaction: false,
             file
         };
         obj.create_index().expect("Cant create index");
@@ -152,17 +150,16 @@ impl KvStore {
         self.file.set_len(0)?;
         self.file_len = 0;
         // println!("{:?}", index);
-        self.is_compaction = true;
+        
         for (key, value) in index {
             self.set(key, value);
         }
-        self.is_compaction = false;
         Ok(())
     }
 
     /// Set up value by key into KVS
     pub fn set(&mut self, key: String, value: String) -> Result<(), String> {
-        if self.file_len - self.storage.len() > 2000 && !self.is_compaction {
+        if self.file_len - self.storage.len() > 2000 {
             // println!("compaction triggered {}", self.storage.len());
             self.compaction();
         }
