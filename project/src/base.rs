@@ -99,7 +99,6 @@ impl KvStore {
                     self.storage.remove(key.as_str());
                     self.file_len += 1;
                 }
-                _ => (),
             }
         }
         Ok(())
@@ -120,10 +119,9 @@ impl KvStore {
                     self.storage.remove(key.as_str());
                 }
                 KVSCommands::Rm { key } => {
-                    self.storage.remove(key.as_str());
                     index.remove(key.as_str());
+                    self.storage.remove(key.as_str());
                 }
-                _ => (),
             }
         }
         // flush file
@@ -149,15 +147,16 @@ impl KvStore {
             value: value.clone(),
         };
         let cmd_str = serde_json::to_string(&cmd)?;
-
+        let len = cmd_str.len();
         // move to end of the file and then write
-        let pos = self.file.seek(SeekFrom::End(0 as i64))?;
+        let position = self.file.seek(SeekFrom::End(0 as i64))?;
+        
+        let index = KVSPosition {
+            position,
+            len
+        };
 
         self.file.write_all(cmd_str.as_bytes())?;
-        let index = KVSPosition {
-            position: pos,
-            len: cmd_str.len(),
-        };
         self.storage.insert(key.clone(), index);
         self.file_len += 1;
         Ok(())
