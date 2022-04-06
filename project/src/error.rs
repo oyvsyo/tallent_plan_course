@@ -1,0 +1,49 @@
+// #![deny(missing_docs)]
+//! Module with key-value storage
+use std::error::Error;
+use std::fmt::{Debug, Display, Formatter, Result};
+
+#[derive(Debug)]
+pub enum KVSError {
+    GeneralKVSError,
+    KeyNotFoundError,
+    IOError,
+    SerdeJsonError,
+}
+
+impl Display for KVSError {
+    fn fmt(&self, f: &mut Formatter) -> Result {
+        match self {
+            KeyNotFoundError => write!(f, "Key not found"),
+            IOError => write!(f, "Imput output error"),
+            SerdeJsonError => write!(f, "Json serialization error"),
+            GeneralKVSError => write!(f, "Unknown error"),
+        }
+    }
+}
+
+impl Error for KVSError {
+    fn description(&self) -> &str {
+        "KVS error .. please get some help"
+    }
+}
+
+impl From<std::io::Error> for KVSError {
+    fn from(err: std::io::Error) -> KVSError {
+        KVSError::IOError
+    }
+}
+
+impl From<serde_json::Error> for KVSError {
+    fn from(err: serde_json::Error) -> KVSError {
+        KVSError::SerdeJsonError
+    }
+}
+
+impl From<String> for KVSError {
+    fn from(_err: String) -> KVSError {
+        KVSError::GeneralKVSError
+    }
+}
+
+pub type KVResult<T> = std::result::Result<T, KVSError>;
