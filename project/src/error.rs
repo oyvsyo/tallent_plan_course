@@ -14,10 +14,10 @@ pub enum KVSError {
 impl Display for KVSError {
     fn fmt(&self, f: &mut Formatter) -> Result {
         match self {
-            KeyNotFoundError => write!(f, "Key not found"),
-            IOError => write!(f, "Imput output error"),
-            SerdeJsonError => write!(f, "Json serialization error"),
-            GeneralKVSError => write!(f, "Unknown error"),
+            KVSError::KeyNotFoundError => write!(f, "Key not found"),
+            KVSError::IOError => write!(f, "Imput output error"),
+            KVSError::SerdeJsonError => write!(f, "Json serialization error"),
+            KVSError::GeneralKVSError => write!(f, "Unknown error"),
         }
     }
 }
@@ -29,13 +29,13 @@ impl Error for KVSError {
 }
 
 impl From<std::io::Error> for KVSError {
-    fn from(err: std::io::Error) -> KVSError {
+    fn from(_err: std::io::Error) -> KVSError {
         KVSError::IOError
     }
 }
 
 impl From<serde_json::Error> for KVSError {
-    fn from(err: serde_json::Error) -> KVSError {
+    fn from(_err: serde_json::Error) -> KVSError {
         KVSError::SerdeJsonError
     }
 }

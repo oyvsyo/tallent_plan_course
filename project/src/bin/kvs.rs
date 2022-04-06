@@ -58,6 +58,5 @@ fn main() {
                 _ => (),
             };
         }
-        _ => panic!("Invalid command. Use one of: [set, get, rm, help]"),
     }
 }
