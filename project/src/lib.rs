@@ -2,7 +2,6 @@
 //! Module with key-value storage
 use std::collections::HashMap;
 use std::path::{PathBuf,Path};
-use std::ops::Add;
 use std::fs::{OpenOptions, File};
 use std::io::{Write, Read, BufRead, BufWriter, BufReader, Seek, SeekFrom};
 use std::error::Error;
