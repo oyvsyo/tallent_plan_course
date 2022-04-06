@@ -106,7 +106,7 @@ impl KvStore {
 
     fn compaction(&mut self) -> KVResult<()> {
         // println!("Compaction triggered");
-        let _ = &self.file.seek(SeekFrom::Start(0 as u64));
+        self.file.seek(SeekFrom::Start(0 as u64))?;
         let buf_reader = BufReader::new(&self.file);
 
         let mut stream = Deserializer::from_reader(buf_reader).into_iter::<KVSCommands>();
