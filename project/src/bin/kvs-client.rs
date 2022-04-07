@@ -1,4 +1,4 @@
-use clap::{AppSettings, Parser, Subcommand};
+use clap::{Parser, Subcommand};
 use kvs::{KvStore, KvsEngine};
 use std::path::Path;
 
@@ -7,11 +7,11 @@ use std::path::Path;
     author,
     version,
     about,
-    long_about = "Key-Value storage, String:String"
+    long_about = "Client for Key-Value Storage, String:String"
 )]
-#[clap(global_setting(AppSettings::PropagateVersion))]
-#[clap(global_setting(AppSettings::UseLongFormatForHelpSubcommand))]
 struct Cli {
+    #[clap(short, long, default_value = "127.0.0.1:4000")]
+    addr: String,
     #[clap(subcommand)]
     command: Commands,
 }
