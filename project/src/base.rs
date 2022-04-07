@@ -5,7 +5,7 @@ use serde_json::Deserializer;
 use std::collections::HashMap;
 use std::fs::{File, OpenOptions};
 use std::io::{BufReader, Read, Seek, SeekFrom, Write};
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 
 use crate::error::{KVResult, KVSError};
 
@@ -41,13 +41,12 @@ struct KVSPosition {
 /// # use std::error::Error;
 /// # use assert_cmd::prelude::*;
 /// # fn main() -> Result<(), Box<dyn Error>> {
-/// use std::path::PathBuf;
+/// use std::path::Path;
 /// use kvs::KvStore;
 ///
-/// let mut path_buf = PathBuf::from(".");
-/// path_buf.push("file.bk");
+/// let mut path = Path::new(".");
 ///
-/// let mut store = KvStore::new(path_buf).unwrap();
+/// let mut store = KvStore::open(path).unwrap();
 /// store.set("key1".to_owned(), "value1".to_owned());
 /// assert_eq!(store.get("key1".to_owned())?, Some("value1".to_owned()));
 /// store.remove("key1".to_owned());
@@ -212,8 +211,8 @@ impl KvStore {
         }
     }
     /// Open the KvStore at a given path. Return the KvStore.
-    pub fn open(path: &Path) -> KVResult<KvStore> {
-        let mut path_buf = path.to_path_buf();
+    pub fn open(path: impl Into<PathBuf>) -> KVResult<KvStore> {
+        let mut path_buf = path.into();
         path_buf.push(DATABASE_FILENAME);
         KvStore::new(path_buf)
     }
