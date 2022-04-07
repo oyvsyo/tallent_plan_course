@@ -24,7 +24,7 @@ impl KVSCommands {
     pub fn get_key(&self) -> &String {
         match self {
             KVSCommands::Rm { key } => key,
-            KVSCommands::Set { key, .. } => key
+            KVSCommands::Set { key, .. } => key,
         }
     }
 }
@@ -102,10 +102,10 @@ impl KvStore {
             };
             // println!("{:?}", position);
             start = end;
-            // insert or remove keys from memory 
+            // insert or remove keys from memory
             // sum up repeated keys for compaction acountability
             match cmd {
-                KVSCommands::Set { key, ..} => {
+                KVSCommands::Set { key, .. } => {
                     if let Some(old_cmd_pos) = self.storage.insert(key.to_owned(), position) {
                         self.possible_compaction += old_cmd_pos.len as u64;
                     }
@@ -113,7 +113,6 @@ impl KvStore {
                 KVSCommands::Rm { key } => {
                     if let Some(old_cmd_pos) = self.storage.remove(key.as_str()) {
                         self.possible_compaction += old_cmd_pos.len as u64;
-
                     }
                 }
             }
@@ -126,8 +125,7 @@ impl KvStore {
         self.file.seek(SeekFrom::Start(0 as u64))?;
         let buf_reader = BufReader::new(&self.file);
 
-        let mut stream = Deserializer::from_reader(buf_reader)
-            .into_iter::<KVSCommands>();
+        let mut stream = Deserializer::from_reader(buf_reader).into_iter::<KVSCommands>();
 
         let mut index: HashMap<String, String> = HashMap::new();
         while let Some(Ok(cmd)) = stream.next() {
@@ -167,7 +165,7 @@ impl KvStore {
         let len = cmd_str.len();
         // move to end of the file and then write
         let pos = self.file.seek(SeekFrom::End(0 as i64))?;
-        
+
         let index = KVSPosition { pos, len };
 
         self.file.write_all(cmd_str.as_bytes())?;
@@ -211,7 +209,6 @@ impl KvStore {
         } else {
             Err(KVSError::GeneralKVSError)
         }
-        
     }
     /// Open the KvStore at a given path. Return the KvStore.
     pub fn open(path: &Path) -> KVResult<KvStore> {
