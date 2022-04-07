@@ -7,7 +7,8 @@ use std::fs::{File, OpenOptions};
 use std::io::{BufReader, Read, Seek, SeekFrom, Write};
 use std::path::PathBuf;
 
-use crate::error::{KVResult, KVSError};
+use crate::error::{Result, KVSError};
+use crate::engine::KvsEngine;
 
 const COMPACTION_THRESHOLD: u64 = 1024 * 1024;
 const DATABASE_FILENAME: &str = "kvs.db";
@@ -64,9 +65,73 @@ pub struct KvStore {
     file: File,
 }
 
+impl KvsEngine for KvStore {
+    
+    /// Set up value by key into KVS
+    fn set(&mut self, key: String, value: String) -> Result<()> {
+        if self.possible_compaction > COMPACTION_THRESHOLD {
+            // println!("compaction triggered {}", self.storage.len());
+            let _ = self.compaction();
+        }
+
+        let cmd = KVSCommands::Set {
+            key: key.clone(),
+            value: value.clone(),
+        };
+        let cmd_str = serde_json::to_string(&cmd)?;
+        let len = cmd_str.len();
+        // move to end of the file and then write
+        let pos = self.file.seek(SeekFrom::End(0 as i64))?;
+
+        let index = KVSPosition { pos, len };
+
+        self.file.write_all(cmd_str.as_bytes())?;
+        self.file.flush()?;
+        if let Some(_old_position) = self.storage.insert(key.clone(), index) {
+            self.possible_compaction += len as u64;
+        }
+        Ok(())
+    }
+    /// Get value by key
+    fn get(&mut self, key: String) -> Result<Option<String>> {
+        // println!("{:?}", self.storage);
+        let record_option = self.storage.get(key.as_str());
+        match record_option {
+            Some(record) => {
+                let mut buf_reader = BufReader::new(&self.file);
+                buf_reader.seek(SeekFrom::Start(record.pos))?;
+                let handle = buf_reader.take(record.len as u64);
+
+                let cmd: KVSCommands = serde_json::from_reader(handle)?;
+                match cmd {
+                    KVSCommands::Set { value, .. } => Ok(Some(value)),
+                    _ => Err(KVSError::GeneralKVSError),
+                }
+            }
+            None => Ok(None),
+        }
+    }
+    /// Removes value by key
+    fn remove(&mut self, key: String) -> Result<()> {
+        let cmd = KVSCommands::Rm { key: key.clone() };
+
+        if let Some(old_cmd_pos) = self.storage.remove(key.as_str()) {
+            // move to end of the file and then write
+            let cmd_str = serde_json::to_string(&cmd)?;
+            self.file.seek(SeekFrom::End(0 as i64))?;
+            self.file.write_all(cmd_str.as_bytes())?;
+            self.file.flush()?;
+            self.possible_compaction += old_cmd_pos.len as u64;
+            Ok(())
+        } else {
+            Err(KVSError::GeneralKVSError)
+        }
+    }
+}
+
 impl KvStore {
     /// Create new instance
-    pub fn new(path: PathBuf) -> KVResult<Self> {
+    pub fn new(path: PathBuf) -> Result<Self> {
         let file = OpenOptions::new()
             .create(true)
             .write(true)
@@ -86,7 +151,7 @@ impl KvStore {
         Ok(obj)
     }
 
-    fn create_index(&mut self) -> Result<(), KVSError> {
+    fn create_index(&mut self) -> Result<()> {
         let buf_reader = BufReader::new(&self.file);
 
         let mut stream = Deserializer::from_reader(buf_reader).into_iter::<KVSCommands>();
@@ -120,7 +185,7 @@ impl KvStore {
         Ok(())
     }
 
-    fn compaction(&mut self) -> KVResult<()> {
+    fn compaction(&mut self) -> Result<()> {
         // println!("Compaction triggered");
         self.file.seek(SeekFrom::Start(0 as u64))?;
         let buf_reader = BufReader::new(&self.file);
@@ -150,68 +215,9 @@ impl KvStore {
         Ok(())
     }
 
-    /// Set up value by key into KVS
-    pub fn set(&mut self, key: String, value: String) -> KVResult<()> {
-        if self.possible_compaction > COMPACTION_THRESHOLD {
-            // println!("compaction triggered {}", self.storage.len());
-            let _ = self.compaction();
-        }
-
-        let cmd = KVSCommands::Set {
-            key: key.clone(),
-            value: value.clone(),
-        };
-        let cmd_str = serde_json::to_string(&cmd)?;
-        let len = cmd_str.len();
-        // move to end of the file and then write
-        let pos = self.file.seek(SeekFrom::End(0 as i64))?;
-
-        let index = KVSPosition { pos, len };
-
-        self.file.write_all(cmd_str.as_bytes())?;
-        self.file.flush()?;
-        if let Some(_old_position) = self.storage.insert(key.clone(), index) {
-            self.possible_compaction += len as u64;
-        }
-        Ok(())
-    }
-    /// Get value by key
-    pub fn get(&self, key: String) -> KVResult<Option<String>> {
-        // println!("{:?}", self.storage);
-        let record_option = self.storage.get(key.as_str());
-        match record_option {
-            Some(record) => {
-                let mut buf_reader = BufReader::new(&self.file);
-                buf_reader.seek(SeekFrom::Start(record.pos))?;
-                let handle = buf_reader.take(record.len as u64);
-
-                let cmd: KVSCommands = serde_json::from_reader(handle)?;
-                match cmd {
-                    KVSCommands::Set { value, .. } => Ok(Some(value)),
-                    _ => Err(KVSError::GeneralKVSError),
-                }
-            }
-            None => Ok(None),
-        }
-    }
-    /// Removes value by key
-    pub fn remove(&mut self, key: String) -> KVResult<()> {
-        let cmd = KVSCommands::Rm { key: key.clone() };
-
-        if let Some(old_cmd_pos) = self.storage.remove(key.as_str()) {
-            // move to end of the file and then write
-            let cmd_str = serde_json::to_string(&cmd)?;
-            self.file.seek(SeekFrom::End(0 as i64))?;
-            self.file.write_all(cmd_str.as_bytes())?;
-            self.file.flush()?;
-            self.possible_compaction += old_cmd_pos.len as u64;
-            Ok(())
-        } else {
-            Err(KVSError::GeneralKVSError)
-        }
-    }
+    
     /// Open the KvStore at a given path. Return the KvStore.
-    pub fn open(path: impl Into<PathBuf>) -> KVResult<KvStore> {
+    pub fn open(path: impl Into<PathBuf>) -> Result<KvStore> {
         let mut path_buf = path.into();
         path_buf.push(DATABASE_FILENAME);
         KvStore::new(path_buf)

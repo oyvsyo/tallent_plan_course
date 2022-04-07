@@ -1,5 +1,7 @@
-pub use base::KvStore;
-pub use error::{KVResult, KVSError};
+pub use engine::KvsEngine;
+pub use kv_store::KvStore;
+pub use error::{Result, KVSError};
 
-mod base;
+mod kv_store;
 mod error;
+mod engine;

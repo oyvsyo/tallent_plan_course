@@ -1,7 +1,7 @@
 // #![deny(missing_docs)]
 //! Module with key-value storage
 use std::error::Error;
-use std::fmt::{Debug, Display, Formatter, Result};
+use std::fmt::{Debug, Display, Formatter};
 
 #[derive(Debug)]
 pub enum KVSError {
@@ -12,7 +12,7 @@ pub enum KVSError {
 }
 
 impl Display for KVSError {
-    fn fmt(&self, f: &mut Formatter) -> Result {
+    fn fmt(&self, f: &mut Formatter) -> std::fmt::Result {
         match self {
             KVSError::KeyNotFoundError => write!(f, "Key not found"),
             KVSError::IOError => write!(f, "Imput output error"),
@@ -46,4 +46,4 @@ impl From<String> for KVSError {
     }
 }
 
-pub type KVResult<T> = std::result::Result<T, KVSError>;
+pub type Result<T> = std::result::Result<T, KVSError>;
