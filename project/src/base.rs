@@ -9,6 +9,8 @@ use std::path::{Path, PathBuf};
 
 use crate::error::{KVResult, KVSError};
 
+const COMPACTION_THRESHOLD: u64 = 1024 * 1024;
+
 // TODO: its duplicated in kvs.rs for cli usage
 #[derive(Serialize, Deserialize)]
 enum KVSCommands {
@@ -18,9 +20,18 @@ enum KVSCommands {
     Rm { key: String },
 }
 
+impl KVSCommands {
+    pub fn get_key(&self) -> &String {
+        match self {
+            KVSCommands::Rm { key } => key,
+            KVSCommands::Set { key, .. } => key
+        }
+    }
+}
+
 #[derive(Debug, Clone)]
 struct KVSPosition {
-    position: u64,
+    pos: u64,
     len: usize,
 }
 
@@ -49,7 +60,7 @@ struct KVSPosition {
 #[derive(Debug)]
 pub struct KvStore {
     storage: HashMap<String, KVSPosition>,
-    file_len: usize,
+    possible_compaction: u64,
     file: File,
 }
 
@@ -63,12 +74,12 @@ impl KvStore {
             .append(true)
             .open(path)
             .unwrap();
-        let file_len = 0;
+        let possible_compaction = 0;
         let storage = HashMap::new();
 
         let mut obj = Self {
             storage,
-            file_len,
+            possible_compaction,
             file,
         };
         obj.create_index()?;
@@ -80,24 +91,30 @@ impl KvStore {
 
         let mut stream = Deserializer::from_reader(buf_reader).into_iter::<KVSCommands>();
         let mut start = 0;
+        // loop over all commands deserialized in file
         while let Some(Ok(cmd)) = stream.next() {
             let end = stream.byte_offset();
             let len = end - start;
             // println!("start, end: {} {}", start, end);
-            let index = KVSPosition {
-                position: start as u64,
-                len: len as usize,
+            let position = KVSPosition {
+                pos: start as u64,
+                len,
             };
-            // println!("{:?}", index);
+            // println!("{:?}", position);
             start = end;
+            // insert or remove keys from memory 
+            // sum up repeated keys for compaction acountability
             match cmd {
                 KVSCommands::Set { key, ..} => {
-                    self.storage.insert(key.to_owned(), index);
-                    self.file_len += 1;
+                    if let Some(old_cmd_pos) = self.storage.insert(key.to_owned(), position) {
+                        self.possible_compaction += old_cmd_pos.len as u64;
+                    }
                 }
                 KVSCommands::Rm { key } => {
-                    self.storage.remove(key.as_str());
-                    self.file_len += 1;
+                    if let Some(old_cmd_pos) = self.storage.remove(key.as_str()) {
+                        self.possible_compaction += old_cmd_pos.len as u64;
+
+                    }
                 }
             }
         }
@@ -109,26 +126,26 @@ impl KvStore {
         self.file.seek(SeekFrom::Start(0 as u64))?;
         let buf_reader = BufReader::new(&self.file);
 
-        let mut stream = Deserializer::from_reader(buf_reader).into_iter::<KVSCommands>();
+        let mut stream = Deserializer::from_reader(buf_reader)
+            .into_iter::<KVSCommands>();
 
         let mut index: HashMap<String, String> = HashMap::new();
         while let Some(Ok(cmd)) = stream.next() {
+            self.storage.remove(cmd.get_key());
             match cmd {
                 KVSCommands::Set { key, value } => {
                     index.insert(key.to_owned(), value.to_owned());
-                    self.storage.remove(key.as_str());
                 }
                 KVSCommands::Rm { key } => {
                     index.remove(key.as_str());
-                    self.storage.remove(key.as_str());
                 }
             }
         }
         // flush file
         self.file.set_len(0)?;
-        self.file_len = 0;
+        self.possible_compaction = 0;
         // println!("{:?}", index);
-
+        // set to file command by command
         for (key, value) in index {
             self.set(key, value)?
         }
@@ -137,7 +154,7 @@ impl KvStore {
 
     /// Set up value by key into KVS
     pub fn set(&mut self, key: String, value: String) -> KVResult<()> {
-        if self.file_len - self.storage.len() > 2000 {
+        if self.possible_compaction > COMPACTION_THRESHOLD {
             // println!("compaction triggered {}", self.storage.len());
             let _ = self.compaction();
         }
@@ -149,16 +166,15 @@ impl KvStore {
         let cmd_str = serde_json::to_string(&cmd)?;
         let len = cmd_str.len();
         // move to end of the file and then write
-        let position = self.file.seek(SeekFrom::End(0 as i64))?;
+        let pos = self.file.seek(SeekFrom::End(0 as i64))?;
         
-        let index = KVSPosition {
-            position,
-            len
-        };
+        let index = KVSPosition { pos, len };
 
         self.file.write_all(cmd_str.as_bytes())?;
-        self.storage.insert(key.clone(), index);
-        self.file_len += 1;
+        self.file.flush()?;
+        if let Some(_old_position) = self.storage.insert(key.clone(), index) {
+            self.possible_compaction += len as u64;
+        }
         Ok(())
     }
     /// Get value by key
@@ -168,13 +184,10 @@ impl KvStore {
         match record_option {
             Some(record) => {
                 let mut buf_reader = BufReader::new(&self.file);
-                buf_reader.seek(SeekFrom::Start(record.position))?;
-                let mut handle = buf_reader.take(record.len as u64);
+                buf_reader.seek(SeekFrom::Start(record.pos))?;
+                let handle = buf_reader.take(record.len as u64);
 
-                let mut buf = String::new();
-                handle.read_to_string(&mut buf)?;
-
-                let cmd: KVSCommands = serde_json::from_str(buf.as_str())?;
+                let cmd: KVSCommands = serde_json::from_reader(handle)?;
                 match cmd {
                     KVSCommands::Set { value, .. } => Ok(Some(value)),
                     _ => Err(KVSError::GeneralKVSError),
@@ -186,16 +199,19 @@ impl KvStore {
     /// Removes value by key
     pub fn remove(&mut self, key: String) -> KVResult<()> {
         let cmd = KVSCommands::Rm { key: key.clone() };
-        let cmd_str = serde_json::to_string(&cmd)?;
 
-        // move to end of the file and then write
-        self.file.seek(SeekFrom::End(0 as i64))?;
-        self.file.write_all(cmd_str.as_bytes())?;
-        self.file_len += 1;
-        match self.storage.remove(key.as_str()) {
-            Some(_) => Ok(()),
-            None => Err(KVSError::GeneralKVSError),
+        if let Some(old_cmd_pos) = self.storage.remove(key.as_str()) {
+            // move to end of the file and then write
+            let cmd_str = serde_json::to_string(&cmd)?;
+            self.file.seek(SeekFrom::End(0 as i64))?;
+            self.file.write_all(cmd_str.as_bytes())?;
+            self.file.flush()?;
+            self.possible_compaction += old_cmd_pos.len as u64;
+            Ok(())
+        } else {
+            Err(KVSError::GeneralKVSError)
         }
+        
     }
     /// Open the KvStore at a given path. Return the KvStore.
     pub fn open(path: &Path) -> KVResult<KvStore> {
