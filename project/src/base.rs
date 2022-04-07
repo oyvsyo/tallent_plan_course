@@ -10,6 +10,7 @@ use std::path::{Path, PathBuf};
 use crate::error::{KVResult, KVSError};
 
 const COMPACTION_THRESHOLD: u64 = 1024 * 1024;
+const DATABASE_FILENAME: &str = "kvs.db";
 
 // TODO: its duplicated in kvs.rs for cli usage
 #[derive(Serialize, Deserialize)]
@@ -213,7 +214,7 @@ impl KvStore {
     /// Open the KvStore at a given path. Return the KvStore.
     pub fn open(path: &Path) -> KVResult<KvStore> {
         let mut path_buf = path.to_path_buf();
-        path_buf.push("file.bk");
+        path_buf.push(DATABASE_FILENAME);
         KvStore::new(path_buf)
     }
 }
