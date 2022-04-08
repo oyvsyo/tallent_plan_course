@@ -1,12 +1,11 @@
 use serde::{Deserialize, Serialize};
-use serde_json::Deserializer;
 use clap::{Subcommand};
 
 use crate::engine::KvsEngine;
-use crate::error::{Result, KVSError};
+// use crate::error::{Result, KVSError};
 
-const MAX_PACKET_LENGTH: usize = 1024; 
-pub type COMMAND_LEN_TYPE = u64;
+// const MAX_PACKET_LENGTH: usize = 1024; 
+// pub type COMMAND_LEN_TYPE = u64;
 
 
 #[derive(Debug)]
