@@ -26,7 +26,7 @@ fn main() {
         _ => panic!("Only kvs engine is an option")
     };
     let addr = cli.addr;
-    let server = KvsServer::new(addr, storage)
+    let mut server = KvsServer::new(addr, storage)
         .expect("cant create server");
     server.listen();
 }

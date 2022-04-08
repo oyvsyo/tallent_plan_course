@@ -1,40 +1,49 @@
-use std::io::Read;
+use std::io::{Read, Write, BufReader};
+use std::io::{BufWriter, BufRead};
 use std::net::{TcpListener, TcpStream};
+use serde::{Deserialize, Serialize};
 use crate::engine::KvsEngine;
 use crate::error::{Result, KVSError};
+use crate::cli_commands::CLICommands;
 
 
 pub struct KvsServer<S: KvsEngine> {
-    listener: TcpListener,
+    addr: String,
     store: S
 }
 
 impl<S: KvsEngine> KvsServer<S> {
 
-    /// Creates new server object
+    /// Creates new server object with KvsEngine object
     pub fn new(addr: String, store: S) -> Result<Self> {
-        
-        let listener = TcpListener::bind(addr).unwrap();
         let obj = KvsServer {
-            listener,
+            addr,
             store
         };
         Ok(obj)
     }
-    pub fn listen(&self) {
-        for stream in self.listener.incoming() {
+    /// Run listener for incomming requests
+    pub fn listen(&mut self) {
+        let listener = TcpListener::bind(&self.addr).unwrap();
+        for stream in listener.incoming() {
             let stream = stream.unwrap();
-    
-            self.handle_connection(stream);
+            self.handle_connection(stream).unwrap();
         }
     }
+    /// here parse request, invoke command by engine and return response
+    fn handle_connection(&mut self, mut stream: TcpStream) -> Result<()> {
+        let mut client_buffer = [0u8; 1024];
+        stream.read(&mut client_buffer)?;
+        let cmd_str = String::from_utf8_lossy(&client_buffer);
 
-    fn handle_connection(&self, mut stream: TcpStream) {
-        let mut buffer = [0; 1024];
-    
-        stream.read(&mut buffer).unwrap();
-    
-        println!("Request: {}", String::from_utf8_lossy(&buffer[..]));
+        let trimmed = cmd_str.trim_matches(char::from(0));
+        let cmd: CLICommands = serde_json::from_str(trimmed)?;
+
+        let resp = cmd.invoke_cmd(&mut self.store);
+
+        println!(" res == {}", resp);
+        stream.write_all(resp.as_bytes())?;
+        stream.flush()?;
+        Ok(())
     }
-    
 }
