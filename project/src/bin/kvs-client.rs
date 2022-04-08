@@ -22,5 +22,7 @@ fn main() {
     let mut client = KVSClient::new(cli.addr)
         .expect("cant create server");
     let cmd_result = client.send_cmd(cli.command).expect("IO error");
-    println!("{}", cmd_result);
+    if !cmd_result.is_empty() {
+        println!("{}", cmd_result);
+    }
 }

@@ -39,7 +39,7 @@ impl<S: KvsEngine> KvsServer<S> {
 
         let resp = cmd.invoke_cmd(&mut self.store);
 
-        println!(" res == {}", resp);
+        // println!(" res == {}", resp);
         stream.write_all(resp.as_bytes())?;
         stream.flush()?;
         Ok(())

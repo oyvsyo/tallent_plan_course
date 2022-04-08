@@ -30,10 +30,10 @@ impl CLICommands {
                 if let Ok(res) = store.get(key.to_owned()) {
                     match res {
                         Some(v) => v.clone(),
-                        None => String::new()
+                        None => String::from("Key not found")
                     }
                 } else {
-                    String::from("No such key")
+                    String::from("Error")
                 }
             },
             CLICommands::Set { key, value } => {
@@ -47,7 +47,7 @@ impl CLICommands {
                 if let Ok(_res) = store.remove(key.to_owned()) {
                     String::new()
                 } else {
-                    String::from("Cant remove")
+                    String::from("Key not found")
                 }
             }
         }
