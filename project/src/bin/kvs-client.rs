@@ -1,5 +1,5 @@
 use clap::{Parser};
-use kvs::{KVSClient, CLICommands};
+use kvs::{KVSClient, DBCommands};
 
 #[derive(Parser)]
 #[clap(
@@ -12,7 +12,7 @@ struct Cli {
     #[clap(short, long, default_value = "127.0.0.1:4000")]
     addr: String,
     #[clap(subcommand)]
-    command: CLICommands,
+    command: DBCommands,
 }
 
 

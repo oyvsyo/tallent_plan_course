@@ -15,24 +15,25 @@ const DATABASE_FILENAME: &str = "kvs.db";
 
 // TODO: its duplicated in kvs.rs for cli usage
 #[derive(Serialize, Deserialize)]
-enum KVSCommands {
+enum DBInsertion {
     /// Set up value by key into KVS
     Set { key: String, value: String },
     /// Removes value by key
     Rm { key: String },
 }
 
-impl KVSCommands {
+/// Database insertion log
+impl DBInsertion {
     pub fn get_key(&self) -> &String {
         match self {
-            KVSCommands::Rm { key } => key,
-            KVSCommands::Set { key, .. } => key,
+            DBInsertion::Rm { key } => key,
+            DBInsertion::Set { key, .. } => key,
         }
     }
 }
 
 #[derive(Debug, Clone)]
-struct KVSPosition {
+struct ItemPosition {
     pos: u64,
     len: usize,
 }
@@ -60,7 +61,7 @@ struct KVSPosition {
 ///
 #[derive(Debug)]
 pub struct KvStore {
-    storage: HashMap<String, KVSPosition>,
+    storage: HashMap<String, ItemPosition>,
     possible_compaction: u64,
     file: File,
 }
@@ -74,18 +75,18 @@ impl KvsEngine for KvStore {
             let _ = self.compaction();
         }
 
-        let cmd = KVSCommands::Set {
+        let insertion = DBInsertion::Set {
             key: key.clone(),
             value: value.clone(),
         };
-        let cmd_str = serde_json::to_string(&cmd)?;
-        let len = cmd_str.len();
+        let insertion_str = serde_json::to_string(&insertion)?;
+        let len = insertion_str.len();
         // move to end of the file and then write
         let pos = self.file.seek(SeekFrom::End(0 as i64))?;
 
-        let index = KVSPosition { pos, len };
+        let index = ItemPosition { pos, len };
 
-        self.file.write_all(cmd_str.as_bytes())?;
+        self.file.write_all(insertion_str.as_bytes())?;
         self.file.flush()?;
         if let Some(_old_position) = self.storage.insert(key.clone(), index) {
             self.possible_compaction += len as u64;
@@ -102,9 +103,9 @@ impl KvsEngine for KvStore {
                 buf_reader.seek(SeekFrom::Start(record.pos))?;
                 let handle = buf_reader.take(record.len as u64);
 
-                let cmd: KVSCommands = serde_json::from_reader(handle)?;
-                match cmd {
-                    KVSCommands::Set { value, .. } => Ok(Some(value)),
+                let insertion: DBInsertion = serde_json::from_reader(handle)?;
+                match insertion {
+                    DBInsertion::Set { value, .. } => Ok(Some(value)),
                     _ => Err(KVSError::GeneralKVSError),
                 }
             }
@@ -113,15 +114,15 @@ impl KvsEngine for KvStore {
     }
     /// Removes value by key
     fn remove(&mut self, key: String) -> Result<()> {
-        let cmd = KVSCommands::Rm { key: key.clone() };
+        let insertion = DBInsertion::Rm { key: key.clone() };
 
-        if let Some(old_cmd_pos) = self.storage.remove(key.as_str()) {
+        if let Some(old_insertion_pos) = self.storage.remove(key.as_str()) {
             // move to end of the file and then write
-            let cmd_str = serde_json::to_string(&cmd)?;
+            let insertion_str = serde_json::to_string(&insertion)?;
             self.file.seek(SeekFrom::End(0 as i64))?;
-            self.file.write_all(cmd_str.as_bytes())?;
+            self.file.write_all(insertion_str.as_bytes())?;
             self.file.flush()?;
-            self.possible_compaction += old_cmd_pos.len as u64;
+            self.possible_compaction += old_insertion_pos.len as u64;
             Ok(())
         } else {
             Err(KVSError::GeneralKVSError)
@@ -154,14 +155,14 @@ impl KvStore {
     fn create_index(&mut self) -> Result<()> {
         let buf_reader = BufReader::new(&self.file);
 
-        let mut stream = Deserializer::from_reader(buf_reader).into_iter::<KVSCommands>();
+        let mut stream = Deserializer::from_reader(buf_reader).into_iter::<DBInsertion>();
         let mut start = 0;
         // loop over all commands deserialized in file
-        while let Some(Ok(cmd)) = stream.next() {
+        while let Some(Ok(insertion)) = stream.next() {
             let end = stream.byte_offset();
             let len = end - start;
             // println!("start, end: {} {}", start, end);
-            let position = KVSPosition {
+            let position = ItemPosition {
                 pos: start as u64,
                 len,
             };
@@ -169,15 +170,15 @@ impl KvStore {
             start = end;
             // insert or remove keys from memory
             // sum up repeated keys for compaction acountability
-            match cmd {
-                KVSCommands::Set { key, .. } => {
-                    if let Some(old_cmd_pos) = self.storage.insert(key.to_owned(), position) {
-                        self.possible_compaction += old_cmd_pos.len as u64;
+            match insertion {
+                DBInsertion::Set { key, .. } => {
+                    if let Some(old_insertion_pos) = self.storage.insert(key.to_owned(), position) {
+                        self.possible_compaction += old_insertion_pos.len as u64;
                     }
                 }
-                KVSCommands::Rm { key } => {
-                    if let Some(old_cmd_pos) = self.storage.remove(key.as_str()) {
-                        self.possible_compaction += old_cmd_pos.len as u64;
+                DBInsertion::Rm { key } => {
+                    if let Some(old_insertion_pos) = self.storage.remove(key.as_str()) {
+                        self.possible_compaction += old_insertion_pos.len as u64;
                     }
                 }
             }
@@ -190,16 +191,16 @@ impl KvStore {
         self.file.seek(SeekFrom::Start(0 as u64))?;
         let buf_reader = BufReader::new(&self.file);
 
-        let mut stream = Deserializer::from_reader(buf_reader).into_iter::<KVSCommands>();
+        let mut stream = Deserializer::from_reader(buf_reader).into_iter::<DBInsertion>();
 
         let mut index: HashMap<String, String> = HashMap::new();
-        while let Some(Ok(cmd)) = stream.next() {
-            self.storage.remove(cmd.get_key());
-            match cmd {
-                KVSCommands::Set { key, value } => {
+        while let Some(Ok(insertion)) = stream.next() {
+            self.storage.remove(insertion.get_key());
+            match insertion {
+                DBInsertion::Set { key, value } => {
                     index.insert(key.to_owned(), value.to_owned());
                 }
-                KVSCommands::Rm { key } => {
+                DBInsertion::Rm { key } => {
                     index.remove(key.as_str());
                 }
             }

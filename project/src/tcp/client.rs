@@ -1,7 +1,8 @@
 use std::net::TcpStream;
 use std::io::{Read, Write};
-use crate::cli_commands::{CLICommands};
+use crate::tcp::protocol::{DBCommands};
 use crate::error::{Result};
+
 
 pub struct KVSClient {
     stream: TcpStream
@@ -15,7 +16,7 @@ impl KVSClient {
     }
 
     /// send command to server
-    pub fn send_cmd(&mut self, command: CLICommands) ->Result<String> {
+    pub fn send_cmd(&mut self, command: DBCommands) ->Result<String> {
     
         let cmd_str = serde_json::to_string(&command)?;
         // println!("send command: |{}|  {}", cmd_str, cmd_str.len());

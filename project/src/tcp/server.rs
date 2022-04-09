@@ -2,7 +2,7 @@ use std::io::{Read, Write};
 use std::net::{TcpListener, TcpStream};
 use crate::engine::KvsEngine;
 use crate::error::{Result};
-use crate::cli_commands::CLICommands;
+use crate::tcp::protocol::DBCommands;
 
 
 pub struct KvsServer<S: KvsEngine> {
@@ -35,7 +35,7 @@ impl<S: KvsEngine> KvsServer<S> {
         let cmd_str = String::from_utf8_lossy(&client_buffer);
 
         let trimmed = cmd_str.trim_matches(char::from(0));
-        let cmd: CLICommands = serde_json::from_str(trimmed)?;
+        let cmd: DBCommands = serde_json::from_str(trimmed)?;
 
         let resp = cmd.invoke_cmd(&mut self.store);
 

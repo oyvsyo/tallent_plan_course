@@ -3,13 +3,13 @@ pub use kv_store::KvStore;
 pub use error::{Result, KVSError};
 pub use tcp::server::KvsServer;
 pub use tcp::client::KVSClient;
-pub use cli_commands::{CLICommands};
+pub use tcp::protocol::DBCommands;
 
 mod kv_store;
 mod error;
 mod engine;
-mod cli_commands;
 mod tcp {
     pub mod server;
     pub mod client;
+    pub mod protocol;
 }

@@ -11,7 +11,7 @@ use crate::engine::KvsEngine;
 #[derive(Debug)]
 #[derive(Serialize, Deserialize)]
 #[derive(Subcommand)]
-pub enum CLICommands {
+pub enum DBCommands {
     /// Set up value by key into KVS
     Set { key: String, value: String },
     /// Get value by key
@@ -21,12 +21,12 @@ pub enum CLICommands {
 }
 
 
-impl CLICommands {
+impl DBCommands {
 
     /// Invoke command on KvsEngine and return string result
     pub fn invoke_cmd<S: KvsEngine>(&self, store: &mut S) -> String {
         match self {
-            CLICommands::Get { key } => {
+            DBCommands::Get { key } => {
                 if let Ok(res) = store.get(key.to_owned()) {
                     match res {
                         Some(v) => v.clone(),
@@ -36,14 +36,14 @@ impl CLICommands {
                     String::from("Error")
                 }
             },
-            CLICommands::Set { key, value } => {
+            DBCommands::Set { key, value } => {
                 if let Ok(_res) = store.set(key.to_owned(), value.to_owned()) {
                     String::new()
                 } else {
                     String::from("Cant set")
                 }
             },
-            CLICommands::Rm { key } => {
+            DBCommands::Rm { key } => {
                 if let Ok(_res) = store.remove(key.to_owned()) {
                     String::new()
                 } else {
@@ -54,7 +54,7 @@ impl CLICommands {
     }
 }
 
-// pub fn command_to_bytes(command: CLICommands) -> Result<Vec<u8>> {
+// pub fn command_to_bytes(command: DBCommands) -> Result<Vec<u8>> {
 //     let cmd_str = serde_json::to_string(&command)?;
 //     let cmd_length = cmd_str.len() as COMMAND_LEN_TYPE;
 //     let mut packet = cmd_length.to_be_bytes().to_vec();
@@ -62,7 +62,7 @@ impl CLICommands {
 //     Ok(packet)
 // }
 
-// pub fn command_from_bytes(bytes: Vec<u8>) -> Result<CLICommands> {
+// pub fn command_from_bytes(bytes: Vec<u8>) -> Result<DBCommands> {
 //     let hui = &bytes[0..8];
 //     let k = hui.try_into().;
 //     let len_bytes = hui;
