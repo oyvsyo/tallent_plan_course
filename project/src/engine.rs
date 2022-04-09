@@ -1,5 +1,4 @@
-use crate::error::{Result};
-
+use crate::error::Result;
 
 /// General interface for Server to use
 pub trait KvsEngine {

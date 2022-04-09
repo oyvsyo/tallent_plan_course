@@ -1,5 +1,5 @@
-use clap::{Parser};
-use kvs::{KVSClient, DBCommands};
+use clap::Parser;
+use kvs::{DBCommands, KVSClient};
 
 #[derive(Parser)]
 #[clap(
@@ -15,12 +15,10 @@ struct Cli {
     command: DBCommands,
 }
 
-
 fn main() {
     let cli = Cli::parse();
 
-    let mut client = KVSClient::new(cli.addr)
-        .expect("cant create server");
+    let mut client = KVSClient::new(cli.addr).expect("cant create server");
     let cmd_result = client.send_cmd(cli.command).expect("IO error");
     if !cmd_result.is_empty() {
         println!("{}", cmd_result);

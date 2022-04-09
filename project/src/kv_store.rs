@@ -7,8 +7,8 @@ use std::fs::{File, OpenOptions};
 use std::io::{BufReader, Read, Seek, SeekFrom, Write};
 use std::path::PathBuf;
 
-use crate::error::{Result, KVSError};
 use crate::engine::KvsEngine;
+use crate::error::{KVSError, Result};
 
 const COMPACTION_THRESHOLD: u64 = 1024 * 1024;
 const DATABASE_FILENAME: &str = "kvs.db";
@@ -67,7 +67,6 @@ pub struct KvStore {
 }
 
 impl KvsEngine for KvStore {
-    
     /// Set up value by key into KVS
     fn set(&mut self, key: String, value: String) -> Result<()> {
         if self.possible_compaction > COMPACTION_THRESHOLD {
@@ -216,7 +215,6 @@ impl KvStore {
         Ok(())
     }
 
-    
     /// Open the KvStore at a given path. Return the KvStore.
     pub fn open(path: impl Into<PathBuf>) -> Result<KvStore> {
         let mut path_buf = path.into();

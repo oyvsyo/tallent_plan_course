@@ -1,15 +1,15 @@
 pub use engine::KvsEngine;
+pub use error::{KVSError, Result};
 pub use kv_store::KvStore;
-pub use error::{Result, KVSError};
-pub use tcp::server::KvsServer;
 pub use tcp::client::KVSClient;
 pub use tcp::protocol::DBCommands;
+pub use tcp::server::KvsServer;
 
-mod kv_store;
-mod error;
 mod engine;
+mod error;
+mod kv_store;
 mod tcp {
-    pub mod server;
     pub mod client;
     pub mod protocol;
+    pub mod server;
 }

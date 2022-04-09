@@ -1,23 +1,18 @@
+use crate::engine::KvsEngine;
+use crate::error::Result;
+use crate::tcp::protocol::DBCommands;
 use std::io::{Read, Write};
 use std::net::{TcpListener, TcpStream};
-use crate::engine::KvsEngine;
-use crate::error::{Result};
-use crate::tcp::protocol::DBCommands;
-
 
 pub struct KvsServer<S: KvsEngine> {
     addr: String,
-    store: S
+    store: S,
 }
 
 impl<S: KvsEngine> KvsServer<S> {
-
     /// Creates new server object with KvsEngine object
     pub fn new(addr: String, store: S) -> Result<Self> {
-        let obj = KvsServer {
-            addr,
-            store
-        };
+        let obj = KvsServer { addr, store };
         Ok(obj)
     }
     /// Run listener for incomming requests
