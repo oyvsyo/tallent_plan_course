@@ -9,6 +9,7 @@ pub enum KVSError {
     KeyNotFoundError,
     IOError,
     SerdeJsonError,
+    FromUtf8Error,
 }
 
 impl Display for KVSError {
@@ -18,6 +19,7 @@ impl Display for KVSError {
             KVSError::IOError => write!(f, "Imput output error"),
             KVSError::SerdeJsonError => write!(f, "Json serialization error"),
             KVSError::GeneralKVSError => write!(f, "Unknown error"),
+            KVSError::FromUtf8Error => write!(f, "Cant converct to string"),
         }
     }
 }
@@ -37,6 +39,12 @@ impl From<std::io::Error> for KVSError {
 impl From<serde_json::Error> for KVSError {
     fn from(_err: serde_json::Error) -> KVSError {
         KVSError::SerdeJsonError
+    }
+}
+
+impl From<std::string::FromUtf8Error> for KVSError {
+    fn from(_err: std::string::FromUtf8Error) -> KVSError {
+        KVSError::FromUtf8Error
     }
 }
 

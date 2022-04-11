@@ -1,7 +1,7 @@
-use clap::{Parser};
+use clap::Parser;
 use kvs::{KvStore, KvsServer};
-use std::path::Path;
 use std::io::{Read, Write};
+use std::path::Path;
 
 const LOCK_FILE: &str = "./.kvs.lock";
 
@@ -29,24 +29,21 @@ fn main() {
 
     let storage = match cli.engine.as_str() {
         "kvs" => KvStore::open(path).expect("Cant create store"),
-        _ => panic!("Only kvs engine is an option")
+        _ => panic!("Only kvs engine is an option"),
     };
-    let mut server = KvsServer::new(cli.addr, storage)
-        .expect("cant create server");
+    let mut server = KvsServer::new(cli.addr, storage).expect("cant create server");
     server.listen();
 }
 
 fn check_engine(engine: &str) {
     if Path::new(LOCK_FILE).exists() {
-        let mut file = std::fs::File::open(LOCK_FILE)
-            .expect("Cant open");
+        let mut file = std::fs::File::open(LOCK_FILE).expect("Cant open");
         let mut contents = String::new();
         file.read_to_string(&mut contents)
             .expect("Cant read from file");
         assert_eq!(contents, engine);
     } else {
-        let mut file = std::fs::File::create(LOCK_FILE)
-            .expect("cant create file");
+        let mut file = std::fs::File::create(LOCK_FILE).expect("cant create file");
         file.write_all(engine.as_bytes())
             .expect("Cant write to file");
     }

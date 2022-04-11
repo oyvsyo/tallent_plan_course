@@ -1,6 +1,6 @@
 use crate::engine::KvsEngine;
 use crate::error::Result;
-use crate::tcp::protocol::DBCommands;
+use crate::tcp::protocol::{DBCommands, unpack_command};
 use std::io::{Read, Write};
 use std::net::{TcpListener, TcpStream};
 
@@ -25,13 +25,7 @@ impl<S: KvsEngine> KvsServer<S> {
     }
     /// here parse request, invoke command by engine and return response
     fn handle_connection(&mut self, mut stream: TcpStream) -> Result<()> {
-        let mut client_buffer = [0u8; 1024];
-        stream.read(&mut client_buffer)?;
-        let cmd_str = String::from_utf8_lossy(&client_buffer);
-
-        let trimmed = cmd_str.trim_matches(char::from(0));
-        let cmd: DBCommands = serde_json::from_str(trimmed)?;
-
+        let cmd = unpack_command(&mut stream)?;
         let resp = cmd.invoke_cmd(&mut self.store);
 
         // println!(" res == {}", resp);
