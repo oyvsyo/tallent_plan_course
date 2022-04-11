@@ -1,5 +1,6 @@
 use clap::Parser;
 use kvs::{KvStore, KvsServer};
+use simple_logger::SimpleLogger;
 use std::io::{Read, Write};
 use std::path::Path;
 
@@ -23,6 +24,7 @@ fn main() {
     let cli = Cli::parse();
 
     let path = Path::new(".");
+    SimpleLogger::new().init().unwrap();
 
     // Check engine in dir
     check_engine(&cli.engine);
@@ -42,9 +44,11 @@ fn check_engine(engine: &str) {
         file.read_to_string(&mut contents)
             .expect("Cant read from file");
         assert_eq!(contents, engine);
+        log::info!("Use previous engine -- {}", engine);
     } else {
         let mut file = std::fs::File::create(LOCK_FILE).expect("cant create file");
         file.write_all(engine.as_bytes())
             .expect("Cant write to file");
+        log::info!("Created lock file with engone -- {}", engine);
     }
 }

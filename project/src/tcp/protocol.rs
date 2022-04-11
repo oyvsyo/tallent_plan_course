@@ -1,14 +1,14 @@
 use clap::Subcommand;
 use serde::{Deserialize, Serialize};
-use std::net::TcpStream;
 use std::io::Read;
+use std::net::TcpStream;
 
 use crate::engine::KvsEngine;
 use crate::error::{KVSError, Result};
 
 const CMD_HEAD: &'static [u8] = &[27, 59];
-const LEN_SIZE: usize = 4; 
-// const MAX_PACKET_LENGTH: usize = 1024;
+const LEN_SIZE: usize = 4;
+
 pub type CommandLenType = u32;
 
 #[derive(Debug, Serialize, Deserialize, Subcommand)]
@@ -25,33 +25,45 @@ const GET_BYTE: u8 = 1;
 const SET_BYTE: u8 = 2;
 const RM_BYTE: u8 = 3;
 
-
 impl DBCommands {
     /// Invoke command on KvsEngine and return string result
-    pub fn invoke_cmd<S: KvsEngine>(&self, store: &mut S) -> String {
+    pub fn invoke_cmd<S: KvsEngine>(&self, store: &mut S) -> ServerResponse {
         match self {
             DBCommands::Get { key } => {
                 if let Ok(res) = store.get(key.to_owned()) {
                     match res {
-                        Some(v) => v.clone(),
-                        None => String::from("Key not found"),
+                        Some(v) => ServerResponse::Success { output: v.clone() },
+                        None => ServerResponse::Success {
+                            output: String::from("Key not found"),
+                        },
+                        // None => ServerResponse::Failure{ message: String::from("Key not found")},
                     }
                 } else {
-                    String::from("Error")
+                    ServerResponse::Failure {
+                        message: String::from("Internal error"),
+                    }
                 }
             }
             DBCommands::Set { key, value } => {
                 if let Ok(_res) = store.set(key.to_owned(), value.to_owned()) {
-                    String::new()
+                    ServerResponse::Success {
+                        output: String::from(""),
+                    }
                 } else {
-                    String::from("Cant set")
+                    ServerResponse::Failure {
+                        message: String::from("Cant set"),
+                    }
                 }
             }
             DBCommands::Rm { key } => {
                 if let Ok(_res) = store.remove(key.to_owned()) {
-                    String::new()
+                    ServerResponse::Success {
+                        output: String::new(),
+                    }
                 } else {
-                    String::from("Key not found")
+                    ServerResponse::Failure {
+                        message: String::from("Key not found"),
+                    }
                 }
             }
         }
@@ -84,16 +96,15 @@ pub fn pack_command(command: DBCommands) -> Result<Vec<u8>> {
 }
 
 pub fn unpack_command(stream: &mut TcpStream) -> Result<DBCommands> {
-
     let mut head = [0u8; 2];
-    &stream.read_exact(&mut head)?;
+    let _ = &stream.read_exact(&mut head)?;
 
     if CMD_HEAD[0] != head[0] || CMD_HEAD[0] != head[0] {
-        return Err(KVSError::GeneralKVSError)
+        return Err(KVSError::GeneralKVSError);
     }
-    
+
     let mut cmd = [0u8; 1];
-    &stream.read_exact(&mut cmd)?;
+    let _ = &stream.read_exact(&mut cmd)?;
 
     let cmd = cmd[0];
 
@@ -115,6 +126,58 @@ pub fn unpack_command(stream: &mut TcpStream) -> Result<DBCommands> {
         GET_BYTE => Ok(DBCommands::Get { key }),
         SET_BYTE => Ok(DBCommands::Set { key, value }),
         RM_BYTE => Ok(DBCommands::Rm { key }),
-        _ => Err(KVSError::GeneralKVSError)
+        _ => Err(KVSError::GeneralKVSError),
+    }
+}
+
+const SUCCESS_BYTE: u8 = 100;
+const FAILURE_BYTE: u8 = 101;
+
+#[derive(Debug)]
+pub enum ServerResponse {
+    Success { output: String },
+    Failure { message: String },
+}
+
+pub fn pack_response(resp: ServerResponse) -> Result<Vec<u8>> {
+    let (resp_byte, msg) = match resp {
+        ServerResponse::Success { output } => (SUCCESS_BYTE, output),
+        ServerResponse::Failure { message } => (FAILURE_BYTE, message),
+    };
+    let msg_len: CommandLenType = msg.len().try_into().unwrap();
+
+    let msg_len_enc = msg_len.to_be_bytes().to_vec();
+    let mut resp_vec = Vec::new();
+    resp_vec.push(resp_byte);
+    let packet = [CMD_HEAD.to_vec(), resp_vec, msg_len_enc, msg.into_bytes()].concat();
+    Ok(packet)
+}
+
+pub fn unpack_response(stream: &mut TcpStream) -> Result<ServerResponse> {
+    let mut head = [0u8; 2];
+    let _ = &stream.read_exact(&mut head)?;
+
+    if CMD_HEAD[0] != head[0] || CMD_HEAD[0] != head[0] {
+        return Err(KVSError::GeneralKVSError);
+    }
+
+    let mut resp_byte = [0u8; 1];
+    let _ = &stream.read_exact(&mut resp_byte)?;
+
+    let resp_type = resp_byte[0];
+
+    let mut msg_len_coded = [0u8; LEN_SIZE];
+    stream.read_exact(&mut msg_len_coded)?;
+
+    let msg_len = CommandLenType::from_be_bytes(msg_len_coded);
+
+    let mut msg_vec = vec![0u8; msg_len as usize];
+    stream.read_exact(&mut msg_vec)?;
+    let msg = String::from_utf8_lossy(&msg_vec).into_owned();
+
+    match resp_type {
+        SUCCESS_BYTE => Ok(ServerResponse::Success { output: msg }),
+        FAILURE_BYTE => Ok(ServerResponse::Failure { message: msg }),
+        _ => Err(KVSError::GeneralKVSError),
     }
 }

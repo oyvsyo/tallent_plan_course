@@ -2,7 +2,7 @@ pub use engine::KvsEngine;
 pub use error::{KVSError, Result};
 pub use kv_store::KvStore;
 pub use tcp::client::KVSClient;
-pub use tcp::protocol::DBCommands;
+pub use tcp::protocol::{DBCommands, ServerResponse};
 pub use tcp::server::KvsServer;
 
 mod engine;

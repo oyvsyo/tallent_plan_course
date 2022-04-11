@@ -1,6 +1,6 @@
 use crate::error::Result;
-use crate::tcp::protocol::{DBCommands, pack_command};
-use std::io::{Read, Write};
+use crate::tcp::protocol::{pack_command, unpack_response, DBCommands, ServerResponse};
+use std::io::Write;
 use std::net::TcpStream;
 
 pub struct KVSClient {
@@ -15,14 +15,11 @@ impl KVSClient {
     }
 
     /// send command to server
-    pub fn send_cmd(&mut self, command: DBCommands) -> Result<String> {
-        
+    pub fn send_cmd(&mut self, command: DBCommands) -> Result<ServerResponse> {
         let cmd_packet = pack_command(command)?;
         let _ = &self.stream.write_all(&cmd_packet)?;
         let _ = &self.stream.flush()?;
 
-        let mut buf = String::new();
-        let _ = &self.stream.read_to_string(&mut buf)?;
-        Ok(buf)
+        unpack_response(&mut self.stream)
     }
 }

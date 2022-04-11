@@ -70,7 +70,6 @@ impl KvsEngine for KvStore {
     /// Set up value by key into KVS
     fn set(&mut self, key: String, value: String) -> Result<()> {
         if self.possible_compaction > COMPACTION_THRESHOLD {
-            // println!("compaction triggered {}", self.storage.len());
             let _ = self.compaction();
         }
 
@@ -160,12 +159,11 @@ impl KvStore {
         while let Some(Ok(insertion)) = stream.next() {
             let end = stream.byte_offset();
             let len = end - start;
-            // println!("start, end: {} {}", start, end);
+
             let position = ItemPosition {
                 pos: start as u64,
                 len,
             };
-            // println!("{:?}", position);
             start = end;
             // insert or remove keys from memory
             // sum up repeated keys for compaction acountability
@@ -186,7 +184,7 @@ impl KvStore {
     }
 
     fn compaction(&mut self) -> Result<()> {
-        // println!("Compaction triggered");
+        log::info!("Compaction triggered");
         self.file.seek(SeekFrom::Start(0 as u64))?;
         let buf_reader = BufReader::new(&self.file);
 
@@ -207,8 +205,6 @@ impl KvStore {
         // flush file
         self.file.set_len(0)?;
         self.possible_compaction = 0;
-        // println!("{:?}", index);
-        // set to file command by command
         for (key, value) in index {
             self.set(key, value)?
         }

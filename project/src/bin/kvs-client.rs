@@ -1,5 +1,5 @@
 use clap::Parser;
-use kvs::{DBCommands, KVSClient};
+use kvs::{DBCommands, KVSClient, ServerResponse};
 
 #[derive(Parser)]
 #[clap(
@@ -19,8 +19,15 @@ fn main() {
     let cli = Cli::parse();
 
     let mut client = KVSClient::new(cli.addr).expect("cant create server");
-    let cmd_result = client.send_cmd(cli.command).expect("IO error");
-    if !cmd_result.is_empty() {
-        println!("{}", cmd_result);
+    let resp = client.send_cmd(cli.command).expect("IO error");
+    match resp {
+        ServerResponse::Success { output } => {
+            if !output.is_empty() {
+                println!("{}", output);
+            }
+        }
+        ServerResponse::Failure { message } => {
+            panic!("{}", message);
+        }
     }
 }
