@@ -1,6 +1,6 @@
 use clap::Parser;
 use env_logger::{Env, Target};
-use kvs::{SledStore, KvStore, KvsServer};
+use kvs::{KvStore, KvsServer, SledStore};
 use std::io::{Read, Write};
 use std::path::Path;
 
@@ -35,13 +35,13 @@ fn main() {
             let storage = KvStore::open(path).expect("Cant create kvs store");
             let mut server = KvsServer::new(cli.addr, storage).expect("cant create server");
             server.listen();
-        },
+        }
         "sled" => {
             let storage = SledStore::open(path).expect("Cant create sled store");
             let mut server = KvsServer::new(cli.addr, storage).expect("cant create server");
             server.listen();
-        },
-        _ => panic!("Only kvs engine is an option")
+        }
+        _ => panic!("Only kvs engine is an option"),
     };
 }
 

@@ -1,7 +1,7 @@
 // #![deny(missing_docs)]
 //! Sled engine implementation
-use std::path::PathBuf;
 use sled::Db;
+use std::path::PathBuf;
 
 use crate::engine::KvsEngine;
 use crate::error::{KVSError, Result};
@@ -14,6 +14,7 @@ const DATABASE_FILENAME: &str = "sled.db";
 /// # use assert_cmd::prelude::*;
 /// # fn main() -> Result<(), Box<dyn Error>> {
 /// use std::path::Path;
+/// use crate::kvs::KvsEngine;
 /// use kvs::SledStore;
 ///
 /// let mut path = Path::new(".");
@@ -31,7 +32,7 @@ const DATABASE_FILENAME: &str = "sled.db";
 ///
 #[derive(Debug)]
 pub struct SledStore {
-    tree: Db
+    tree: Db,
 }
 
 impl KvsEngine for SledStore {
@@ -49,8 +50,8 @@ impl KvsEngine for SledStore {
             Some(ivec) => {
                 let value = String::from_utf8(ivec.to_vec())?;
                 Ok(Some(value))
-            },
-            None => Ok(None)
+            }
+            None => Ok(None),
         }
     }
     /// Removes value by key
@@ -60,8 +61,8 @@ impl KvsEngine for SledStore {
                 Some(_v) => {
                     self.tree.flush()?;
                     Ok(())
-                },
-                None => Err(KVSError::GeneralKVSError)
+                }
+                None => Err(KVSError::GeneralKVSError),
             }
         } else {
             Err(KVSError::GeneralKVSError)
@@ -73,9 +74,7 @@ impl SledStore {
     /// Create new instance of Sled
     pub fn new(path: PathBuf) -> Result<Self> {
         let tree = sled::open(path)?;
-        let obj = Self {
-            tree,
-        };
+        let obj = Self { tree };
         Ok(obj)
     }
 

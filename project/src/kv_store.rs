@@ -45,6 +45,7 @@ struct ItemPosition {
 /// # fn main() -> Result<(), Box<dyn Error>> {
 /// use std::path::Path;
 /// use kvs::KvStore;
+/// use crate::kvs::KvsEngine;
 ///
 /// let mut path = Path::new(".");
 ///
