@@ -1,4 +1,5 @@
 use clap::Subcommand;
+use crc16::{State, ARC};
 use serde::{Deserialize, Serialize};
 use std::io::Read;
 use std::net::TcpStream;
@@ -92,6 +93,8 @@ pub fn pack_command(command: DBCommands) -> Result<Vec<u8>> {
         value.into_bytes(),
     ]
     .concat();
+    let checksum = State::<ARC>::calculate(&packet).to_be_bytes();
+    let packet = [packet, checksum.to_vec()].concat();
     Ok(packet)
 }
 
@@ -103,10 +106,9 @@ pub fn unpack_command(stream: &mut TcpStream) -> Result<DBCommands> {
         return Err(KVSError::GeneralKVSError);
     }
 
-    let mut cmd = [0u8; 1];
-    let _ = &stream.read_exact(&mut cmd)?;
-
-    let cmd = cmd[0];
+    let mut cmd_array = [0u8; 1];
+    let _ = &stream.read_exact(&mut cmd_array)?;
+    let cmd = cmd_array[0];
 
     let mut key_len_coded = [0u8; LEN_SIZE];
     stream.read_exact(&mut key_len_coded)?;
@@ -115,12 +117,34 @@ pub fn unpack_command(stream: &mut TcpStream) -> Result<DBCommands> {
     let key_len = CommandLenType::from_be_bytes(key_len_coded);
     let val_len = CommandLenType::from_be_bytes(val_len_coded);
 
-    let mut key = vec![0u8; key_len as usize];
-    stream.read_exact(&mut key)?;
-    let key = String::from_utf8_lossy(&key).into_owned();
-    let mut value = vec![0u8; val_len as usize];
-    stream.read_exact(&mut value)?;
-    let value = String::from_utf8_lossy(&value).into_owned();
+    let mut key_buff = vec![0u8; key_len as usize];
+    stream.read_exact(&mut key_buff)?;
+    let key = String::from_utf8_lossy(&key_buff).into_owned();
+    let mut value_buff = vec![0u8; val_len as usize];
+    stream.read_exact(&mut value_buff)?;
+    let value = String::from_utf8_lossy(&value_buff).into_owned();
+
+    // check hashsum of the data
+    let mut checksum = vec![0u8; 2];
+    stream.read_exact(&mut checksum)?;
+    let packet = [
+        CMD_HEAD.to_vec(),
+        cmd_array.to_vec(),
+        key_len_coded.to_vec(),
+        val_len_coded.to_vec(),
+        key_buff,
+        value_buff,
+    ]
+    .concat();
+    let calculated = State::<ARC>::calculate(&packet).to_be_bytes();
+    if calculated[0] != checksum[0] && calculated[1] != checksum[1] {
+        log::error!(
+            "Checksum of command not matched, must be {:?}, received {:?}",
+            calculated,
+            checksum
+        );
+        return Err(KVSError::GeneralKVSError);
+    }
 
     match cmd {
         GET_BYTE => Ok(DBCommands::Get { key }),
@@ -150,6 +174,8 @@ pub fn pack_response(resp: ServerResponse) -> Result<Vec<u8>> {
     let mut resp_vec = Vec::new();
     resp_vec.push(resp_byte);
     let packet = [CMD_HEAD.to_vec(), resp_vec, msg_len_enc, msg.into_bytes()].concat();
+    let checksum = State::<ARC>::calculate(&packet).to_be_bytes();
+    let packet = [packet, checksum.to_vec()].concat();
     Ok(packet)
 }
 
@@ -174,6 +200,26 @@ pub fn unpack_response(stream: &mut TcpStream) -> Result<ServerResponse> {
     let mut msg_vec = vec![0u8; msg_len as usize];
     stream.read_exact(&mut msg_vec)?;
     let msg = String::from_utf8_lossy(&msg_vec).into_owned();
+
+    // check hashsum of the data
+    let mut checksum = vec![0u8; 2];
+    stream.read_exact(&mut checksum)?;
+    let packet = [
+        CMD_HEAD.to_vec(),
+        resp_byte.to_vec(),
+        msg_len_coded.to_vec(),
+        msg_vec,
+    ]
+    .concat();
+    let calculated = State::<ARC>::calculate(&packet).to_be_bytes();
+    if calculated[0] != checksum[0] && calculated[1] != checksum[1] {
+        log::error!(
+            "Response checksum is not matched, must be {:?}, received {:?}",
+            calculated,
+            checksum
+        );
+        return Err(KVSError::GeneralKVSError);
+    }
 
     match resp_type {
         SUCCESS_BYTE => Ok(ServerResponse::Success { output: msg }),

@@ -1,6 +1,6 @@
 use clap::Parser;
-use kvs::{KvStore, KvsServer};
-use simple_logger::SimpleLogger;
+use env_logger::{Env, Target};
+use kvs::{SledStore, KvStore, KvsServer};
 use std::io::{Read, Write};
 use std::path::Path;
 
@@ -21,20 +21,28 @@ struct Cli {
 }
 
 fn main() {
-    let cli = Cli::parse();
+    env_logger::Builder::from_env(Env::default().default_filter_or("trace"))
+        // .target(Target::Stdout)
+        .init();
 
-    let path = Path::new(".");
-    SimpleLogger::new().init().unwrap();
+    let cli = Cli::parse();
 
     // Check engine in dir
     check_engine(&cli.engine);
-
-    let storage = match cli.engine.as_str() {
-        "kvs" => KvStore::open(path).expect("Cant create store"),
-        _ => panic!("Only kvs engine is an option"),
+    let path = Path::new(".");
+    match cli.engine.as_str() {
+        "kvs" => {
+            let storage = KvStore::open(path).expect("Cant create kvs store");
+            let mut server = KvsServer::new(cli.addr, storage).expect("cant create server");
+            server.listen();
+        },
+        "sled" => {
+            let storage = SledStore::open(path).expect("Cant create sled store");
+            let mut server = KvsServer::new(cli.addr, storage).expect("cant create server");
+            server.listen();
+        },
+        _ => panic!("Only kvs engine is an option")
     };
-    let mut server = KvsServer::new(cli.addr, storage).expect("cant create server");
-    server.listen();
 }
 
 fn check_engine(engine: &str) {
@@ -49,6 +57,6 @@ fn check_engine(engine: &str) {
         let mut file = std::fs::File::create(LOCK_FILE).expect("cant create file");
         file.write_all(engine.as_bytes())
             .expect("Cant write to file");
-        log::info!("Created lock file with engone -- {}", engine);
+        log::info!("Created lock file with engine -- {}", engine);
     }
 }

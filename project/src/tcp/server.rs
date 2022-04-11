@@ -13,6 +13,7 @@ impl<S: KvsEngine> KvsServer<S> {
     /// Creates new server object with KvsEngine object
     pub fn new(addr: String, store: S) -> Result<Self> {
         let obj = KvsServer { addr, store };
+        log::info!("Version -- {}", env!("CARGO_PKG_VERSION"));
         log::info!("Created KVSStore successful");
         Ok(obj)
     }
