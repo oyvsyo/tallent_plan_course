@@ -51,8 +51,9 @@ fn check_engine(engine: &str) {
         let mut contents = String::new();
         file.read_to_string(&mut contents)
             .expect("Cant read from file");
-        assert_eq!(contents, engine);
-        log::info!("Use previous engine -- {}", engine);
+        if contents != engine {
+            panic!("Use previous engine: --engine={}", contents);
+        }
     } else {
         let mut file = std::fs::File::create(LOCK_FILE).expect("cant create file");
         file.write_all(engine.as_bytes())
