@@ -24,8 +24,9 @@ impl<S: KvsEngine> KvsServer<S> {
         for stream in listener.incoming() {
             match stream {
                 Ok(stream) => {
+                    log::info!("Client connected");
                     match self.handle_connection(stream) {
-                        Ok(_) => (),
+                        Ok(_) => log::info!("Client command served"),
                         Err(e) => log::error!("{}", e),
                     };
                 }
