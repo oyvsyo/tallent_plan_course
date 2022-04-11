@@ -1,5 +1,5 @@
-use clap::{AppSettings, Parser, Subcommand};
-use kvs::KvStore;
+use clap::{Parser, Subcommand};
+use kvs::{KvStore, KvsEngine};
 use std::path::Path;
 
 #[derive(Parser)]
@@ -9,8 +9,6 @@ use std::path::Path;
     about,
     long_about = "Key-Value storage, String:String"
 )]
-#[clap(global_setting(AppSettings::PropagateVersion))]
-#[clap(global_setting(AppSettings::UseLongFormatForHelpSubcommand))]
 struct Cli {
     #[clap(subcommand)]
     command: Commands,
