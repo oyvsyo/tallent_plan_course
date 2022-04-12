@@ -1,5 +1,0 @@
-(function() {var implementors = {};
-implementors["kvs"] = [{"text":"impl FromArgMatches for <a class=\"enum\" href=\"kvs/enum.DBCommands.html\" title=\"enum kvs::DBCommands\">DBCommands</a>","synthetic":false,"types":["kvs::tcp::protocol::DBCommands"]}];
-implementors["kvs_client"] = [{"text":"impl FromArgMatches for <a class=\"struct\" href=\"kvs_client/struct.Cli.html\" title=\"struct kvs_client::Cli\">Cli</a>","synthetic":false,"types":["kvs_client::Cli"]}];
-implementors["kvs_server"] = [{"text":"impl FromArgMatches for <a class=\"struct\" href=\"kvs_server/struct.Cli.html\" title=\"struct kvs_server::Cli\">Cli</a>","synthetic":false,"types":["kvs_server::Cli"]}];
-if (window.register_implementors) {window.register_implementors(implementors);} else {window.pending_implementors = implementors;}})()

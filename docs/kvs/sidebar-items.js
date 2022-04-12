@@ -1,1 +1,0 @@
-initSidebarItems({"enum":[["DBCommands",""],["KVSError",""],["ServerResponse",""]],"struct":[["KVSClient",""],["KvStore","Usage"],["KvsServer",""],["SledStore","Usage"]],"trait":[["KvsEngine","General interface for Server to use"]],"type":[["Result",""]]});
