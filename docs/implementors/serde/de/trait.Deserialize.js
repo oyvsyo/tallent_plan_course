@@ -1,0 +1,3 @@
+(function() {var implementors = {};
+implementors["kvs"] = [{"text":"impl&lt;'de&gt; <a class=\"trait\" href=\"https://docs.rs/serde/1.0.136/serde/de/trait.Deserialize.html\" title=\"trait serde::de::Deserialize\">Deserialize</a>&lt;'de&gt; for <a class=\"enum\" href=\"kvs/enum.DBCommands.html\" title=\"enum kvs::DBCommands\">DBCommands</a>","synthetic":false,"types":["kvs::tcp::protocol::DBCommands"]}];
+if (window.register_implementors) {window.register_implementors(implementors);} else {window.pending_implementors = implementors;}})()
