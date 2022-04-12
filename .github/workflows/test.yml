@@ -1,3 +1,4 @@
+# Runs tests
 name: Run tests
 
 on: push

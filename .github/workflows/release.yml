@@ -1,3 +1,6 @@
+# On release will compile binaries for 3 platforms
+# mac-os, linux and windows
+# than will add binaries to release assets
 on:
   release:
     types: [created]

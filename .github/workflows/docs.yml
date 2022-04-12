@@ -1,3 +1,6 @@
+# Build docs and push to docs branch
+# deploy github pages from documentation at 
+# https://oyvsyo.github.io/tallent_plan_course/kvs/index.html
 name: Build docs and deploy on gh-pages
 on: 
   push:
