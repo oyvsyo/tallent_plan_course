@@ -40,31 +40,23 @@ fn get_values<S: KvsEngine>(storage: &mut S, keys: Vec<String>, values: Vec<Stri
 
 fn set_benchmark(c: &mut Criterion) {
     let mut group = c.benchmark_group("set_benchmark");
-
+    let keys = generate_strings(100, 1, 100000).expect("Cant create strings");
+    let values = generate_strings(100, 1, 100000).expect("Cant create strings");
+    let temp_dir = TempDir::new().unwrap();
     for store_type in ["kvs", "sled"].iter() {
         group.bench_with_input(
             BenchmarkId::new("input_example", store_type),
             &store_type,
-            |b, &s| {
-                let keys = generate_strings(100, 1, 100000).expect("Cant create strings");
-                let values = generate_strings(100, 1, 100000).expect("Cant create strings");
-                let temp_dir = TempDir::new().unwrap();
-                match *s {
-                    "kvs" => {
-                        let mut store = KvStore::open(temp_dir.path()).expect("cant create store");
-                        b.iter(|| {
-                            set_values(&mut store, copy_strings(&keys), copy_strings(&values))
-                        });
-                    }
-                    "sled" => {
-                        let mut store =
-                            SledStore::open(temp_dir.path()).expect("cant create store");
-                        b.iter(|| {
-                            set_values(&mut store, copy_strings(&keys), copy_strings(&values))
-                        })
-                    }
-                    _ => (),
+            |b, &s| match *s {
+                "kvs" => {
+                    let mut store = KvStore::open(temp_dir.path()).expect("cant create store");
+                    b.iter(|| set_values(&mut store, copy_strings(&keys), copy_strings(&values)));
                 }
+                "sled" => {
+                    let mut store = SledStore::open(temp_dir.path()).expect("cant create store");
+                    b.iter(|| set_values(&mut store, copy_strings(&keys), copy_strings(&values)))
+                }
+                _ => (),
             },
         );
     }
@@ -73,33 +65,25 @@ fn set_benchmark(c: &mut Criterion) {
 
 fn get_benchmark(c: &mut Criterion) {
     let mut group = c.benchmark_group("get_benchmark");
-
+    let keys = generate_strings(100, 1, 100000).expect("Cant create strings");
+    let values = generate_strings(100, 1, 100000).expect("Cant create strings");
+    let temp_dir = TempDir::new().unwrap();
     for store_type in ["kvs", "sled"].iter() {
         group.bench_with_input(
             BenchmarkId::new("input_example", store_type),
             &store_type,
-            |b, &s| {
-                let keys = generate_strings(100, 1, 100000).expect("Cant create strings");
-                let values = generate_strings(100, 1, 100000).expect("Cant create strings");
-                let temp_dir = TempDir::new().unwrap();
-                match *s {
-                    "kvs" => {
-                        let mut store = KvStore::open(temp_dir.path()).expect("cant create store");
-                        set_values(&mut store, copy_strings(&keys), copy_strings(&values));
-                        b.iter(|| {
-                            get_values(&mut store, copy_strings(&keys), copy_strings(&values))
-                        });
-                    }
-                    "sled" => {
-                        let mut store =
-                            SledStore::open(temp_dir.path()).expect("cant create store");
-                        set_values(&mut store, copy_strings(&keys), copy_strings(&values));
-                        b.iter(|| {
-                            get_values(&mut store, copy_strings(&keys), copy_strings(&values))
-                        })
-                    }
-                    _ => (),
+            |b, &s| match *s {
+                "kvs" => {
+                    let mut store = KvStore::open(temp_dir.path()).expect("cant create store");
+                    set_values(&mut store, copy_strings(&keys), copy_strings(&values));
+                    b.iter(|| get_values(&mut store, copy_strings(&keys), copy_strings(&values)));
                 }
+                "sled" => {
+                    let mut store = SledStore::open(temp_dir.path()).expect("cant create store");
+                    set_values(&mut store, copy_strings(&keys), copy_strings(&values));
+                    b.iter(|| get_values(&mut store, copy_strings(&keys), copy_strings(&values)))
+                }
+                _ => (),
             },
         );
     }
