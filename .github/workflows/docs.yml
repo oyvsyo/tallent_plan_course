@@ -12,7 +12,7 @@ jobs:
 
       - name: Build docs 🔧 
         run: |
-          cargo docs --no-deps
+          cargo doc --no-deps
           cp -r target/doc/kvs docs/
 
       - name: Deploy 🚀
