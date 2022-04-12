@@ -3,6 +3,10 @@
 Exercises for PingCAP Talent Plan Course
 https://github.com/pingcap/talent-plan
 
+> Checkput docs [here](https://oyvsyo.github.io/tallent_plan_course/kvs/index.html)
+
+> Also [releases](https://github.com/oyvsyo/tallent_plan_course/releases)
+
 
 ## PNA Rust Project 3: Synchronous client-server networking
 
