@@ -1,5 +1,5 @@
 use clap::Parser;
-use env_logger::{Env, Target};
+use env_logger::{Env};
 use kvs::{KvStore, KvsServer, SledStore};
 use std::io::{Read, Write};
 use std::path::Path;
@@ -22,7 +22,7 @@ struct Cli {
 
 fn main() {
     env_logger::Builder::from_env(Env::default().default_filter_or("trace"))
-        // .target(Target::Stdout)
+        // .target(env_logger::Target::Stdout)
         .init();
 
     let cli = Cli::parse();

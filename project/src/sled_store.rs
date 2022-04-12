@@ -36,7 +36,7 @@ pub struct SledStore {
 }
 
 impl KvsEngine for SledStore {
-    /// Set up value by key into KVS
+    /// Set up value by key into Sled
     fn set(&mut self, key: String, value: String) -> Result<()> {
         self.tree.insert(key, value.as_bytes())?;
         self.tree.flush()?;
