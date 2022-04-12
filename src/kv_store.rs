@@ -47,7 +47,7 @@ struct ItemPosition {
 /// use kvs::KvStore;
 /// use crate::kvs::KvsEngine;
 ///
-/// let mut path = Path::new(".");
+/// let mut path = Path::new("/tmp/kvs_store.db");
 ///
 /// let mut store = KvStore::open(path).unwrap();
 /// store.set("key1".to_owned(), "value1".to_owned());

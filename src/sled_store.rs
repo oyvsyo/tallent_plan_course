@@ -17,7 +17,7 @@ const DATABASE_FILENAME: &str = "sled.db";
 /// use crate::kvs::KvsEngine;
 /// use kvs::SledStore;
 ///
-/// let mut path = Path::new(".");
+/// let mut path = Path::new("/tmp/sled");
 ///
 /// let mut store = SledStore::open(path).unwrap();
 /// store.set("key1".to_owned(), "value1".to_owned());
