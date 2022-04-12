@@ -84,11 +84,11 @@ impl KvsEngine for KvStore {
         // move to end of the file and then write
         let pos = self.file.seek(SeekFrom::End(0))?;
 
-        let index = ItemPosition { pos, len };
+        let position = ItemPosition { pos, len };
 
         self.file.write_all(insertion_str.as_bytes())?;
         self.file.flush()?;
-        if let Some(_old_position) = self.storage.insert(key, index) {
+        if let Some(_old_position) = self.storage.insert(key, position) {
             self.possible_compaction += len as u64;
         }
         Ok(())

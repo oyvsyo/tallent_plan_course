@@ -86,8 +86,8 @@ impl DBCommands {
             DBCommands::Rm { key } => (RM_BYTE, key, String::from("")),
             DBCommands::Set { key, value } => (SET_BYTE, key, value),
         };
-        let k_len: CommandLenType = key.len().try_into().unwrap();
-        let v_len: CommandLenType = value.len().try_into().unwrap();
+        let k_len = key.len() as CommandLenType;
+        let v_len = value.len() as CommandLenType;
 
         let k_len_enc = k_len.to_be_bytes().to_vec();
         let v_len_enc = v_len.to_be_bytes().to_vec();
@@ -180,7 +180,7 @@ impl ServerResponse {
             ServerResponse::Success { output } => (SUCCESS_BYTE, output),
             ServerResponse::Failure { message } => (FAILURE_BYTE, message),
         };
-        let msg_len: CommandLenType = msg.len().try_into().unwrap();
+        let msg_len = msg.len() as CommandLenType;
 
         let msg_len_enc = msg_len.to_be_bytes().to_vec();
         let resp_vec = vec![resp_byte];
