@@ -77,18 +77,18 @@ impl KvsEngine for KvStore {
 
         let insertion = DBInsertion::Set {
             key: key.clone(),
-            value: value.clone(),
+            value,
         };
         let insertion_str = serde_json::to_string(&insertion)?;
         let len = insertion_str.len();
         // move to end of the file and then write
-        let pos = self.file.seek(SeekFrom::End(0 as i64))?;
+        let pos = self.file.seek(SeekFrom::End(0))?;
 
         let index = ItemPosition { pos, len };
 
         self.file.write_all(insertion_str.as_bytes())?;
         self.file.flush()?;
-        if let Some(_old_position) = self.storage.insert(key.clone(), index) {
+        if let Some(_old_position) = self.storage.insert(key, index) {
             self.possible_compaction += len as u64;
         }
         Ok(())
@@ -119,7 +119,7 @@ impl KvsEngine for KvStore {
         if let Some(old_insertion_pos) = self.storage.remove(key.as_str()) {
             // move to end of the file and then write
             let insertion_str = serde_json::to_string(&insertion)?;
-            self.file.seek(SeekFrom::End(0 as i64))?;
+            self.file.seek(SeekFrom::End(0))?;
             self.file.write_all(insertion_str.as_bytes())?;
             self.file.flush()?;
             self.possible_compaction += old_insertion_pos.len as u64;
@@ -187,7 +187,7 @@ impl KvStore {
 
     fn compaction(&mut self) -> Result<()> {
         log::info!("Compaction triggered");
-        self.file.seek(SeekFrom::Start(0 as u64))?;
+        self.file.seek(SeekFrom::Start(0))?;
         let buf_reader = BufReader::new(&self.file);
 
         let mut stream = Deserializer::from_reader(buf_reader).into_iter::<DBInsertion>();

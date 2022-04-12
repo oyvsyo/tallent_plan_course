@@ -7,14 +7,14 @@ use std::net::TcpStream;
 use crate::engine::KvsEngine;
 use crate::error::{KVSError, Result};
 
-const CMD_HEAD: &'static [u8] = &[27, 59];
+const CMD_HEAD: &[u8] = &[27, 59];
 const LEN_SIZE: usize = 4;
 /// Type of integer length of key, value (for DBCommands)
 /// or output, message (for ServerResponse)
 pub type CommandLenType = u32;
 
 fn check_head(head: &[u8]) -> Result<()>{
-    if CMD_HEAD[0] != head[0] || CMD_HEAD[0] != head[0] {
+    if CMD_HEAD[0] != head[0] || CMD_HEAD[1] != head[1] {
         log::error!(
             "Head not matched: {:?}, received {:?}",
             CMD_HEAD,
@@ -46,7 +46,7 @@ impl DBCommands {
             DBCommands::Get { key } => {
                 if let Ok(res) = store.get(key.to_owned()) {
                     match res {
-                        Some(value) => ServerResponse::Success { output: value.to_owned() },
+                        Some(value) => ServerResponse::Success { output: value },
                         None => ServerResponse::Success {
                             output: String::from("Key not found"),
                         },
@@ -95,8 +95,7 @@ impl DBCommands {
     
         let k_len_enc = k_len.to_be_bytes().to_vec();
         let v_len_enc = v_len.to_be_bytes().to_vec();
-        let mut cmd_vec = Vec::new();
-        cmd_vec.push(cmd);
+        let cmd_vec = vec![cmd];
         let packet = [
             CMD_HEAD.to_vec(),
             cmd_vec,
@@ -189,8 +188,7 @@ impl ServerResponse {
         let msg_len: CommandLenType = msg.len().try_into().unwrap();
     
         let msg_len_enc = msg_len.to_be_bytes().to_vec();
-        let mut resp_vec = Vec::new();
-        resp_vec.push(resp_byte);
+        let resp_vec = vec![resp_byte];
         let packet = [CMD_HEAD.to_vec(), resp_vec, msg_len_enc, msg.into_bytes()].concat();
         let checksum = State::<ARC>::calculate(&packet).to_be_bytes();
         let packet = [packet, checksum.to_vec()].concat();
