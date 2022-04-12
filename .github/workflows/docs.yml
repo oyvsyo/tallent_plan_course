@@ -13,7 +13,7 @@ jobs:
       - name: Build docs 🔧 
         run: |
           cargo doc --no-deps
-          cp -r target/doc/kvs docs/
+          cp -r target/doc/* docs/
 
       - name: Deploy 🚀
         uses: JamesIves/github-pages-deploy-action@v4.3.0
