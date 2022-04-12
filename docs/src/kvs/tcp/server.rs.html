@@ -49,10 +49,9 @@
 <span id="47">47</span>
 <span id="48">48</span>
 <span id="49">49</span>
-<span id="50">50</span>
 </pre><pre class="rust"><code><span class="kw">use</span> <span class="ident"><span class="kw">crate</span>::engine::KvsEngine</span>;
 <span class="kw">use</span> <span class="ident"><span class="kw">crate</span>::error::Result</span>;
-<span class="kw">use</span> <span class="ident"><span class="kw">crate</span>::tcp::protocol</span>::{<span class="ident">pack_response</span>, <span class="ident">unpack_command</span>};
+<span class="kw">use</span> <span class="ident"><span class="kw">crate</span>::tcp::protocol</span>::{<span class="ident">DBCommands</span>};
 <span class="kw">use</span> <span class="ident">std::io::Write</span>;
 <span class="kw">use</span> <span class="ident">std::net</span>::{<span class="ident">TcpListener</span>, <span class="ident">TcpStream</span>};
 
@@ -76,7 +75,6 @@
         <span class="kw">for</span> <span class="ident">stream</span> <span class="kw">in</span> <span class="ident">listener</span>.<span class="ident">incoming</span>() {
             <span class="kw">match</span> <span class="ident">stream</span> {
                 <span class="prelude-val">Ok</span>(<span class="ident">stream</span>) =&gt; {
-                    <span class="macro">log::info!</span>(<span class="string">&quot;Client connected&quot;</span>);
                     <span class="kw">match</span> <span class="self">self</span>.<span class="ident">handle_connection</span>(<span class="ident">stream</span>) {
                         <span class="prelude-val">Ok</span>(<span class="kw">_</span>) =&gt; <span class="macro">log::info!</span>(<span class="string">&quot;Client command served&quot;</span>),
                         <span class="prelude-val">Err</span>(<span class="ident">e</span>) =&gt; <span class="macro">log::error!</span>(<span class="string">&quot;{}&quot;</span>, <span class="ident">e</span>),
@@ -90,11 +88,11 @@
     }
     <span class="doccomment">/// here parse request, invoke command by engine and return response</span>
     <span class="kw">fn</span> <span class="ident">handle_connection</span>(<span class="kw-2">&amp;mut</span> <span class="self">self</span>, <span class="kw-2">mut</span> <span class="ident">stream</span>: <span class="ident">TcpStream</span>) -&gt; <span class="prelude-ty">Result</span><span class="op">&lt;</span>()<span class="op">&gt;</span> {
-        <span class="kw">let</span> <span class="ident">cmd</span> <span class="op">=</span> <span class="ident">unpack_command</span>(<span class="kw-2">&amp;mut</span> <span class="ident">stream</span>)<span class="question-mark">?</span>;
+        <span class="kw">let</span> <span class="ident">cmd</span> <span class="op">=</span> <span class="ident">DBCommands::from_stream</span>(<span class="kw-2">&amp;mut</span> <span class="ident">stream</span>)<span class="question-mark">?</span>;
         <span class="macro">log::debug!</span>(<span class="string">&quot;Command - {:?}&quot;</span>, <span class="ident">cmd</span>);
         <span class="kw">let</span> <span class="ident">resp</span> <span class="op">=</span> <span class="ident">cmd</span>.<span class="ident">invoke_cmd</span>(<span class="kw-2">&amp;mut</span> <span class="self">self</span>.<span class="ident">store</span>);
         <span class="macro">log::debug!</span>(<span class="string">&quot;Result - {:?}&quot;</span>, <span class="ident">resp</span>);
-        <span class="kw">let</span> <span class="ident">resp_bytes</span> <span class="op">=</span> <span class="ident">pack_response</span>(<span class="ident">resp</span>)<span class="question-mark">?</span>;
+        <span class="kw">let</span> <span class="ident">resp_bytes</span> <span class="op">=</span> <span class="ident">resp</span>.<span class="ident">to_packet</span>()<span class="question-mark">?</span>;
         <span class="ident">stream</span>.<span class="ident">write_all</span>(<span class="kw-2">&amp;</span><span class="ident">resp_bytes</span>)<span class="question-mark">?</span>;
         <span class="ident">stream</span>.<span class="ident">flush</span>()<span class="question-mark">?</span>;
         <span class="prelude-val">Ok</span>(())

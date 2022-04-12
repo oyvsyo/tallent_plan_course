@@ -125,7 +125,7 @@
 }
 
 <span class="kw">impl</span> <span class="ident">KvsEngine</span> <span class="kw">for</span> <span class="ident">SledStore</span> {
-    <span class="doccomment">/// Set up value by key into KVS</span>
+    <span class="doccomment">/// Set up value by key into Sled</span>
     <span class="kw">fn</span> <span class="ident">set</span>(<span class="kw-2">&amp;mut</span> <span class="self">self</span>, <span class="ident">key</span>: <span class="ident">String</span>, <span class="ident">value</span>: <span class="ident">String</span>) -&gt; <span class="prelude-ty">Result</span><span class="op">&lt;</span>()<span class="op">&gt;</span> {
         <span class="self">self</span>.<span class="ident">tree</span>.<span class="ident">insert</span>(<span class="ident">key</span>, <span class="ident">value</span>.<span class="ident">as_bytes</span>())<span class="question-mark">?</span>;
         <span class="self">self</span>.<span class="ident">tree</span>.<span class="ident">flush</span>()<span class="question-mark">?</span>;
