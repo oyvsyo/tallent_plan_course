@@ -29,33 +29,11 @@ fn copy_strings(strings: &Vec<String>) -> Vec<String> {
 
 fn set_benchmark<S: KvsEngine>(storage: &mut S, keys: Vec<String>, values: Vec<String>) {
     for (key, value) in zip(keys, values) {
-        &storage.set(key, value);
-    }
-}
-
-fn bench_bench(store_type: &str,  keys: Vec<String>, values: Vec<String>) {
-    let temp_dir = TempDir::new().unwrap();
-    match store_type{
-        "kvs" => {
-            let mut store = KvStore::open(temp_dir.path()).expect("cant create store");
-            set_benchmark(&mut store, keys, values);
-        }
-        "sled" => {
-            let mut store = SledStore::open(temp_dir.path()).expect("cant create store");
-            set_benchmark(&mut store, keys, values);
-        }
-        _ => ()
+        let _ = &storage.set(key, value);
     }
 }
 
 fn from_elem(c: &mut Criterion) {
-
-    // let temp_dir_kvs = TempDir::new().unwrap();
-    // let mut kvs_store = KvStore::open(temp_dir_kvs.path()).expect("cant create KVS store");
-
-    // let temp_dir_sled = TempDir::new().unwrap();
-    // let mut sled_store = SledStore::open(temp_dir_sled.path()).expect("cant create Sled store");
-
 
     let mut group = c.benchmark_group("set_benchmark");
 
@@ -63,10 +41,20 @@ fn from_elem(c: &mut Criterion) {
         group.bench_with_input(BenchmarkId::new("input_example", store_type), &store_type, |b, &s| {
             let keys = generate_strings(100, 1, 100000).expect("Cant create strings");
             let values = generate_strings(100, 1, 100000).expect("Cant create strings");
-            b.iter(|| bench_bench(s, copy_strings(&keys), copy_strings(&values))); 
+            let temp_dir = TempDir::new().unwrap();
+            match *s{
+                "kvs" => {
+                    let mut store = KvStore::open(temp_dir.path()).expect("cant create store");
+                    b.iter(|| set_benchmark(&mut store, copy_strings(&keys), copy_strings(&values)));
+                }
+                "sled" => {
+                    let mut store = SledStore::open(temp_dir.path()).expect("cant create store");
+                    b.iter(|| set_benchmark(&mut store, copy_strings(&keys), copy_strings(&values)))
+                }
+                _ => ()
+            }
         });
     }
-
     group.finish();
 }
 
