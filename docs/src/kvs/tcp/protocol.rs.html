@@ -240,13 +240,6 @@
 <span id="238">238</span>
 <span id="239">239</span>
 <span id="240">240</span>
-<span id="241">241</span>
-<span id="242">242</span>
-<span id="243">243</span>
-<span id="244">244</span>
-<span id="245">245</span>
-<span id="246">246</span>
-<span id="247">247</span>
 </pre><pre class="rust"><code><span class="kw">use</span> <span class="ident">clap::Subcommand</span>;
 <span class="kw">use</span> <span class="ident">crc16</span>::{<span class="ident">State</span>, <span class="ident">ARC</span>};
 <span class="kw">use</span> <span class="ident">serde</span>::{<span class="ident">Deserialize</span>, <span class="ident">Serialize</span>};
@@ -256,19 +249,15 @@
 <span class="kw">use</span> <span class="ident"><span class="kw">crate</span>::engine::KvsEngine</span>;
 <span class="kw">use</span> <span class="ident"><span class="kw">crate</span>::error</span>::{<span class="ident">KVSError</span>, <span class="prelude-ty">Result</span>};
 
-<span class="kw">const</span> <span class="ident">CMD_HEAD</span>: <span class="kw-2">&amp;</span><span class="lifetime">&#39;static</span> [<span class="ident">u8</span>] <span class="op">=</span> <span class="kw-2">&amp;</span>[<span class="number">27</span>, <span class="number">59</span>];
+<span class="kw">const</span> <span class="ident">CMD_HEAD</span>: <span class="kw-2">&amp;</span>[<span class="ident">u8</span>] <span class="op">=</span> <span class="kw-2">&amp;</span>[<span class="number">27</span>, <span class="number">59</span>];
 <span class="kw">const</span> <span class="ident">LEN_SIZE</span>: <span class="ident">usize</span> <span class="op">=</span> <span class="number">4</span>;
 <span class="doccomment">/// Type of integer length of key, value (for DBCommands)</span>
 <span class="doccomment">/// or output, message (for ServerResponse)</span>
 <span class="kw">pub</span> <span class="kw">type</span> <span class="ident">CommandLenType</span> <span class="op">=</span> <span class="ident">u32</span>;
 
-<span class="kw">fn</span> <span class="ident">check_head</span>(<span class="ident">head</span>: <span class="kw-2">&amp;</span>[<span class="ident">u8</span>]) -&gt; <span class="prelude-ty">Result</span><span class="op">&lt;</span>()<span class="op">&gt;</span>{
-    <span class="kw">if</span> <span class="ident">CMD_HEAD</span>[<span class="number">0</span>] <span class="op">!</span><span class="op">=</span> <span class="ident">head</span>[<span class="number">0</span>] <span class="op">|</span><span class="op">|</span> <span class="ident">CMD_HEAD</span>[<span class="number">0</span>] <span class="op">!</span><span class="op">=</span> <span class="ident">head</span>[<span class="number">0</span>] {
-        <span class="macro">log::error!</span>(
-            <span class="string">&quot;Head not matched: {:?}, received {:?}&quot;</span>,
-            <span class="ident">CMD_HEAD</span>,
-            <span class="ident">head</span>
-        );
+<span class="kw">fn</span> <span class="ident">check_head</span>(<span class="ident">head</span>: <span class="kw-2">&amp;</span>[<span class="ident">u8</span>]) -&gt; <span class="prelude-ty">Result</span><span class="op">&lt;</span>()<span class="op">&gt;</span> {
+    <span class="kw">if</span> <span class="ident">CMD_HEAD</span>[<span class="number">0</span>] <span class="op">!</span><span class="op">=</span> <span class="ident">head</span>[<span class="number">0</span>] <span class="op">|</span><span class="op">|</span> <span class="ident">CMD_HEAD</span>[<span class="number">1</span>] <span class="op">!</span><span class="op">=</span> <span class="ident">head</span>[<span class="number">1</span>] {
+        <span class="macro">log::error!</span>(<span class="string">&quot;Head not matched: {:?}, received {:?}&quot;</span>, <span class="ident">CMD_HEAD</span>, <span class="ident">head</span>);
         <span class="kw">return</span> <span class="prelude-val">Err</span>(<span class="ident">KVSError::GeneralKVSError</span>);
     }
     <span class="prelude-val">Ok</span>(())
@@ -295,7 +284,7 @@
             <span class="ident">DBCommands::Get</span> { <span class="ident">key</span> } =&gt; {
                 <span class="kw">if</span> <span class="kw">let</span> <span class="prelude-val">Ok</span>(<span class="ident">res</span>) <span class="op">=</span> <span class="ident">store</span>.<span class="ident">get</span>(<span class="ident">key</span>.<span class="ident">to_owned</span>()) {
                     <span class="kw">match</span> <span class="ident">res</span> {
-                        <span class="prelude-val">Some</span>(<span class="ident">value</span>) =&gt; <span class="ident">ServerResponse::Success</span> { <span class="ident">output</span>: <span class="ident">value</span>.<span class="ident">to_owned</span>() },
+                        <span class="prelude-val">Some</span>(<span class="ident">value</span>) =&gt; <span class="ident">ServerResponse::Success</span> { <span class="ident">output</span>: <span class="ident">value</span> },
                         <span class="prelude-val">None</span> =&gt; <span class="ident">ServerResponse::Success</span> {
                             <span class="ident">output</span>: <span class="ident">String::from</span>(<span class="string">&quot;Key not found&quot;</span>),
                         },
@@ -339,13 +328,12 @@
             <span class="ident">DBCommands::Rm</span> { <span class="ident">key</span> } =&gt; (<span class="ident">RM_BYTE</span>, <span class="ident">key</span>, <span class="ident">String::from</span>(<span class="string">&quot;&quot;</span>)),
             <span class="ident">DBCommands::Set</span> { <span class="ident">key</span>, <span class="ident">value</span> } =&gt; (<span class="ident">SET_BYTE</span>, <span class="ident">key</span>, <span class="ident">value</span>),
         };
-        <span class="kw">let</span> <span class="ident">k_len</span>: <span class="ident">CommandLenType</span> <span class="op">=</span> <span class="ident">key</span>.<span class="ident">len</span>().<span class="ident">try_into</span>().<span class="ident">unwrap</span>();
-        <span class="kw">let</span> <span class="ident">v_len</span>: <span class="ident">CommandLenType</span> <span class="op">=</span> <span class="ident">value</span>.<span class="ident">len</span>().<span class="ident">try_into</span>().<span class="ident">unwrap</span>();
-    
+        <span class="kw">let</span> <span class="ident">k_len</span> <span class="op">=</span> <span class="ident">key</span>.<span class="ident">len</span>() <span class="kw">as</span> <span class="ident">CommandLenType</span>;
+        <span class="kw">let</span> <span class="ident">v_len</span> <span class="op">=</span> <span class="ident">value</span>.<span class="ident">len</span>() <span class="kw">as</span> <span class="ident">CommandLenType</span>;
+
         <span class="kw">let</span> <span class="ident">k_len_enc</span> <span class="op">=</span> <span class="ident">k_len</span>.<span class="ident">to_be_bytes</span>().<span class="ident">to_vec</span>();
         <span class="kw">let</span> <span class="ident">v_len_enc</span> <span class="op">=</span> <span class="ident">v_len</span>.<span class="ident">to_be_bytes</span>().<span class="ident">to_vec</span>();
-        <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">cmd_vec</span> <span class="op">=</span> <span class="ident">Vec::new</span>();
-        <span class="ident">cmd_vec</span>.<span class="ident">push</span>(<span class="ident">cmd</span>);
+        <span class="kw">let</span> <span class="ident">cmd_vec</span> <span class="op">=</span> <span class="macro">vec!</span>[<span class="ident">cmd</span>];
         <span class="kw">let</span> <span class="ident">packet</span> <span class="op">=</span> [
             <span class="ident">CMD_HEAD</span>.<span class="ident">to_vec</span>(),
             <span class="ident">cmd_vec</span>,
@@ -364,27 +352,27 @@
     <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">from_stream</span>(<span class="ident">stream</span>: <span class="kw-2">&amp;mut</span> <span class="ident">TcpStream</span>) -&gt; <span class="prelude-ty">Result</span><span class="op">&lt;</span><span class="self">Self</span><span class="op">&gt;</span> {
         <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">head</span> <span class="op">=</span> [<span class="number">0u8</span>; <span class="number">2</span>];
         <span class="kw">let</span> <span class="kw">_</span> <span class="op">=</span> <span class="kw-2">&amp;</span><span class="ident">stream</span>.<span class="ident">read_exact</span>(<span class="kw-2">&amp;mut</span> <span class="ident">head</span>)<span class="question-mark">?</span>;
-    
+
         <span class="ident">check_head</span>(<span class="kw-2">&amp;</span><span class="ident">head</span>)<span class="question-mark">?</span>;
-    
+
         <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">cmd_array</span> <span class="op">=</span> [<span class="number">0u8</span>; <span class="number">1</span>];
         <span class="kw">let</span> <span class="kw">_</span> <span class="op">=</span> <span class="kw-2">&amp;</span><span class="ident">stream</span>.<span class="ident">read_exact</span>(<span class="kw-2">&amp;mut</span> <span class="ident">cmd_array</span>)<span class="question-mark">?</span>;
         <span class="kw">let</span> <span class="ident">cmd</span> <span class="op">=</span> <span class="ident">cmd_array</span>[<span class="number">0</span>];
-    
+
         <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">key_len_coded</span> <span class="op">=</span> [<span class="number">0u8</span>; <span class="ident">LEN_SIZE</span>];
         <span class="ident">stream</span>.<span class="ident">read_exact</span>(<span class="kw-2">&amp;mut</span> <span class="ident">key_len_coded</span>)<span class="question-mark">?</span>;
         <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">val_len_coded</span> <span class="op">=</span> [<span class="number">0u8</span>; <span class="ident">LEN_SIZE</span>];
         <span class="ident">stream</span>.<span class="ident">read_exact</span>(<span class="kw-2">&amp;mut</span> <span class="ident">val_len_coded</span>)<span class="question-mark">?</span>;
         <span class="kw">let</span> <span class="ident">key_len</span> <span class="op">=</span> <span class="ident">CommandLenType::from_be_bytes</span>(<span class="ident">key_len_coded</span>);
         <span class="kw">let</span> <span class="ident">val_len</span> <span class="op">=</span> <span class="ident">CommandLenType::from_be_bytes</span>(<span class="ident">val_len_coded</span>);
-    
+
         <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">key_buff</span> <span class="op">=</span> <span class="macro">vec!</span>[<span class="number">0u8</span>; <span class="ident">key_len</span> <span class="kw">as</span> <span class="ident">usize</span>];
         <span class="ident">stream</span>.<span class="ident">read_exact</span>(<span class="kw-2">&amp;mut</span> <span class="ident">key_buff</span>)<span class="question-mark">?</span>;
         <span class="kw">let</span> <span class="ident">key</span> <span class="op">=</span> <span class="ident">String::from_utf8_lossy</span>(<span class="kw-2">&amp;</span><span class="ident">key_buff</span>).<span class="ident">into_owned</span>();
         <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">value_buff</span> <span class="op">=</span> <span class="macro">vec!</span>[<span class="number">0u8</span>; <span class="ident">val_len</span> <span class="kw">as</span> <span class="ident">usize</span>];
         <span class="ident">stream</span>.<span class="ident">read_exact</span>(<span class="kw-2">&amp;mut</span> <span class="ident">value_buff</span>)<span class="question-mark">?</span>;
         <span class="kw">let</span> <span class="ident">value</span> <span class="op">=</span> <span class="ident">String::from_utf8_lossy</span>(<span class="kw-2">&amp;</span><span class="ident">value_buff</span>).<span class="ident">into_owned</span>();
-    
+
         <span class="comment">// check hashsum of the data</span>
         <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">checksum</span> <span class="op">=</span> <span class="macro">vec!</span>[<span class="number">0u8</span>; <span class="number">2</span>];
         <span class="ident">stream</span>.<span class="ident">read_exact</span>(<span class="kw-2">&amp;mut</span> <span class="ident">checksum</span>)<span class="question-mark">?</span>;
@@ -406,7 +394,7 @@
             );
             <span class="kw">return</span> <span class="prelude-val">Err</span>(<span class="ident">KVSError::GeneralKVSError</span>);
         }
-    
+
         <span class="kw">match</span> <span class="ident">cmd</span> {
             <span class="ident">GET_BYTE</span> =&gt; <span class="prelude-val">Ok</span>(<span class="ident">DBCommands::Get</span> { <span class="ident">key</span> }),
             <span class="ident">SET_BYTE</span> =&gt; <span class="prelude-val">Ok</span>(<span class="ident">DBCommands::Set</span> { <span class="ident">key</span>, <span class="ident">value</span> }),
@@ -415,7 +403,6 @@
         }
     }
 }
-
 
 <span class="kw">const</span> <span class="ident">SUCCESS_BYTE</span>: <span class="ident">u8</span> <span class="op">=</span> <span class="number">100</span>;
 <span class="kw">const</span> <span class="ident">FAILURE_BYTE</span>: <span class="ident">u8</span> <span class="op">=</span> <span class="number">101</span>;
@@ -435,11 +422,10 @@
             <span class="ident">ServerResponse::Success</span> { <span class="ident">output</span> } =&gt; (<span class="ident">SUCCESS_BYTE</span>, <span class="ident">output</span>),
             <span class="ident">ServerResponse::Failure</span> { <span class="ident">message</span> } =&gt; (<span class="ident">FAILURE_BYTE</span>, <span class="ident">message</span>),
         };
-        <span class="kw">let</span> <span class="ident">msg_len</span>: <span class="ident">CommandLenType</span> <span class="op">=</span> <span class="ident">msg</span>.<span class="ident">len</span>().<span class="ident">try_into</span>().<span class="ident">unwrap</span>();
-    
+        <span class="kw">let</span> <span class="ident">msg_len</span> <span class="op">=</span> <span class="ident">msg</span>.<span class="ident">len</span>() <span class="kw">as</span> <span class="ident">CommandLenType</span>;
+
         <span class="kw">let</span> <span class="ident">msg_len_enc</span> <span class="op">=</span> <span class="ident">msg_len</span>.<span class="ident">to_be_bytes</span>().<span class="ident">to_vec</span>();
-        <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">resp_vec</span> <span class="op">=</span> <span class="ident">Vec::new</span>();
-        <span class="ident">resp_vec</span>.<span class="ident">push</span>(<span class="ident">resp_byte</span>);
+        <span class="kw">let</span> <span class="ident">resp_vec</span> <span class="op">=</span> <span class="macro">vec!</span>[<span class="ident">resp_byte</span>];
         <span class="kw">let</span> <span class="ident">packet</span> <span class="op">=</span> [<span class="ident">CMD_HEAD</span>.<span class="ident">to_vec</span>(), <span class="ident">resp_vec</span>, <span class="ident">msg_len_enc</span>, <span class="ident">msg</span>.<span class="ident">into_bytes</span>()].<span class="ident">concat</span>();
         <span class="kw">let</span> <span class="ident">checksum</span> <span class="op">=</span> <span class="ident">State</span>::<span class="op">&lt;</span><span class="ident">ARC</span><span class="op">&gt;</span><span class="ident">::calculate</span>(<span class="kw-2">&amp;</span><span class="ident">packet</span>).<span class="ident">to_be_bytes</span>();
         <span class="kw">let</span> <span class="ident">packet</span> <span class="op">=</span> [<span class="ident">packet</span>, <span class="ident">checksum</span>.<span class="ident">to_vec</span>()].<span class="ident">concat</span>();
@@ -450,23 +436,23 @@
     <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">from_stream</span>(<span class="ident">stream</span>: <span class="kw-2">&amp;mut</span> <span class="ident">TcpStream</span>) -&gt; <span class="prelude-ty">Result</span><span class="op">&lt;</span><span class="self">Self</span><span class="op">&gt;</span> {
         <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">head</span> <span class="op">=</span> [<span class="number">0u8</span>; <span class="number">2</span>];
         <span class="kw">let</span> <span class="kw">_</span> <span class="op">=</span> <span class="kw-2">&amp;</span><span class="ident">stream</span>.<span class="ident">read_exact</span>(<span class="kw-2">&amp;mut</span> <span class="ident">head</span>)<span class="question-mark">?</span>;
-    
+
         <span class="ident">check_head</span>(<span class="kw-2">&amp;</span><span class="ident">head</span>)<span class="question-mark">?</span>;
-    
+
         <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">resp_byte</span> <span class="op">=</span> [<span class="number">0u8</span>; <span class="number">1</span>];
         <span class="kw">let</span> <span class="kw">_</span> <span class="op">=</span> <span class="kw-2">&amp;</span><span class="ident">stream</span>.<span class="ident">read_exact</span>(<span class="kw-2">&amp;mut</span> <span class="ident">resp_byte</span>)<span class="question-mark">?</span>;
-    
+
         <span class="kw">let</span> <span class="ident">resp_type</span> <span class="op">=</span> <span class="ident">resp_byte</span>[<span class="number">0</span>];
-    
+
         <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">msg_len_coded</span> <span class="op">=</span> [<span class="number">0u8</span>; <span class="ident">LEN_SIZE</span>];
         <span class="ident">stream</span>.<span class="ident">read_exact</span>(<span class="kw-2">&amp;mut</span> <span class="ident">msg_len_coded</span>)<span class="question-mark">?</span>;
-    
+
         <span class="kw">let</span> <span class="ident">msg_len</span> <span class="op">=</span> <span class="ident">CommandLenType::from_be_bytes</span>(<span class="ident">msg_len_coded</span>);
-    
+
         <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">msg_vec</span> <span class="op">=</span> <span class="macro">vec!</span>[<span class="number">0u8</span>; <span class="ident">msg_len</span> <span class="kw">as</span> <span class="ident">usize</span>];
         <span class="ident">stream</span>.<span class="ident">read_exact</span>(<span class="kw-2">&amp;mut</span> <span class="ident">msg_vec</span>)<span class="question-mark">?</span>;
         <span class="kw">let</span> <span class="ident">msg</span> <span class="op">=</span> <span class="ident">String::from_utf8_lossy</span>(<span class="kw-2">&amp;</span><span class="ident">msg_vec</span>).<span class="ident">into_owned</span>();
-    
+
         <span class="comment">// check hashsum of the data</span>
         <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">checksum</span> <span class="op">=</span> <span class="macro">vec!</span>[<span class="number">0u8</span>; <span class="number">2</span>];
         <span class="ident">stream</span>.<span class="ident">read_exact</span>(<span class="kw-2">&amp;mut</span> <span class="ident">checksum</span>)<span class="question-mark">?</span>;
@@ -486,13 +472,13 @@
             );
             <span class="kw">return</span> <span class="prelude-val">Err</span>(<span class="ident">KVSError::GeneralKVSError</span>);
         }
-    
+
         <span class="kw">match</span> <span class="ident">resp_type</span> {
             <span class="ident">SUCCESS_BYTE</span> =&gt; <span class="prelude-val">Ok</span>(<span class="ident">ServerResponse::Success</span> { <span class="ident">output</span>: <span class="ident">msg</span> }),
             <span class="ident">FAILURE_BYTE</span> =&gt; <span class="prelude-val">Ok</span>(<span class="ident">ServerResponse::Failure</span> { <span class="ident">message</span>: <span class="ident">msg</span> }),
             <span class="kw">_</span> =&gt; <span class="prelude-val">Err</span>(<span class="ident">KVSError::GeneralKVSError</span>),
         }
-    }    
+    }
 }
 </code></pre></div>
 </section><section id="search" class="content hidden"></section></div></main><div id="rustdoc-vars" data-root-path="../../../" data-current-crate="kvs" data-themes="ayu,dark,light" data-resource-suffix="" data-rustdoc-version="1.59.0 (9d1b2106e 2022-02-23)" ></div>
