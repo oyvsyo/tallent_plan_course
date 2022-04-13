@@ -1,5 +1,5 @@
 use crate::error::Result;
-use crate::tcp::protocol::{ServerResponse, DBCommands};
+use crate::tcp::protocol::{DBCommands, ServerResponse};
 use std::io::Write;
 use std::net::TcpStream;
 

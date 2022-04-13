@@ -1,5 +1,5 @@
 use clap::Parser;
-use env_logger::{Env};
+use env_logger::Env;
 use kvs::{KvStore, KvsServer, SledStore};
 use std::io::{Read, Write};
 use std::path::Path;

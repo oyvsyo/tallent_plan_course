@@ -7,19 +7,15 @@ use std::net::TcpStream;
 use crate::engine::KvsEngine;
 use crate::error::{KVSError, Result};
 
-const CMD_HEAD: &'static [u8] = &[27, 59];
+const CMD_HEAD: &[u8] = &[27, 59];
 const LEN_SIZE: usize = 4;
 /// Type of integer length of key, value (for DBCommands)
 /// or output, message (for ServerResponse)
 pub type CommandLenType = u32;
 
-fn check_head(head: &[u8]) -> Result<()>{
-    if CMD_HEAD[0] != head[0] || CMD_HEAD[0] != head[0] {
-        log::error!(
-            "Head not matched: {:?}, received {:?}",
-            CMD_HEAD,
-            head
-        );
+fn check_head(head: &[u8]) -> Result<()> {
+    if CMD_HEAD[0] != head[0] || CMD_HEAD[1] != head[1] {
+        log::error!("Head not matched: {:?}, received {:?}", CMD_HEAD, head);
         return Err(KVSError::GeneralKVSError);
     }
     Ok(())
@@ -46,7 +42,7 @@ impl DBCommands {
             DBCommands::Get { key } => {
                 if let Ok(res) = store.get(key.to_owned()) {
                     match res {
-                        Some(value) => ServerResponse::Success { output: value.to_owned() },
+                        Some(value) => ServerResponse::Success { output: value },
                         None => ServerResponse::Success {
                             output: String::from("Key not found"),
                         },
@@ -90,13 +86,12 @@ impl DBCommands {
             DBCommands::Rm { key } => (RM_BYTE, key, String::from("")),
             DBCommands::Set { key, value } => (SET_BYTE, key, value),
         };
-        let k_len: CommandLenType = key.len().try_into().unwrap();
-        let v_len: CommandLenType = value.len().try_into().unwrap();
-    
+        let k_len = key.len() as CommandLenType;
+        let v_len = value.len() as CommandLenType;
+
         let k_len_enc = k_len.to_be_bytes().to_vec();
         let v_len_enc = v_len.to_be_bytes().to_vec();
-        let mut cmd_vec = Vec::new();
-        cmd_vec.push(cmd);
+        let cmd_vec = vec![cmd];
         let packet = [
             CMD_HEAD.to_vec(),
             cmd_vec,
@@ -115,27 +110,27 @@ impl DBCommands {
     pub fn from_stream(stream: &mut TcpStream) -> Result<Self> {
         let mut head = [0u8; 2];
         let _ = &stream.read_exact(&mut head)?;
-    
+
         check_head(&head)?;
-    
+
         let mut cmd_array = [0u8; 1];
         let _ = &stream.read_exact(&mut cmd_array)?;
         let cmd = cmd_array[0];
-    
+
         let mut key_len_coded = [0u8; LEN_SIZE];
         stream.read_exact(&mut key_len_coded)?;
         let mut val_len_coded = [0u8; LEN_SIZE];
         stream.read_exact(&mut val_len_coded)?;
         let key_len = CommandLenType::from_be_bytes(key_len_coded);
         let val_len = CommandLenType::from_be_bytes(val_len_coded);
-    
+
         let mut key_buff = vec![0u8; key_len as usize];
         stream.read_exact(&mut key_buff)?;
         let key = String::from_utf8_lossy(&key_buff).into_owned();
         let mut value_buff = vec![0u8; val_len as usize];
         stream.read_exact(&mut value_buff)?;
         let value = String::from_utf8_lossy(&value_buff).into_owned();
-    
+
         // check hashsum of the data
         let mut checksum = vec![0u8; 2];
         stream.read_exact(&mut checksum)?;
@@ -157,7 +152,7 @@ impl DBCommands {
             );
             return Err(KVSError::GeneralKVSError);
         }
-    
+
         match cmd {
             GET_BYTE => Ok(DBCommands::Get { key }),
             SET_BYTE => Ok(DBCommands::Set { key, value }),
@@ -166,7 +161,6 @@ impl DBCommands {
         }
     }
 }
-
 
 const SUCCESS_BYTE: u8 = 100;
 const FAILURE_BYTE: u8 = 101;
@@ -186,11 +180,10 @@ impl ServerResponse {
             ServerResponse::Success { output } => (SUCCESS_BYTE, output),
             ServerResponse::Failure { message } => (FAILURE_BYTE, message),
         };
-        let msg_len: CommandLenType = msg.len().try_into().unwrap();
-    
+        let msg_len = msg.len() as CommandLenType;
+
         let msg_len_enc = msg_len.to_be_bytes().to_vec();
-        let mut resp_vec = Vec::new();
-        resp_vec.push(resp_byte);
+        let resp_vec = vec![resp_byte];
         let packet = [CMD_HEAD.to_vec(), resp_vec, msg_len_enc, msg.into_bytes()].concat();
         let checksum = State::<ARC>::calculate(&packet).to_be_bytes();
         let packet = [packet, checksum.to_vec()].concat();
@@ -201,23 +194,23 @@ impl ServerResponse {
     pub fn from_stream(stream: &mut TcpStream) -> Result<Self> {
         let mut head = [0u8; 2];
         let _ = &stream.read_exact(&mut head)?;
-    
+
         check_head(&head)?;
-    
+
         let mut resp_byte = [0u8; 1];
         let _ = &stream.read_exact(&mut resp_byte)?;
-    
+
         let resp_type = resp_byte[0];
-    
+
         let mut msg_len_coded = [0u8; LEN_SIZE];
         stream.read_exact(&mut msg_len_coded)?;
-    
+
         let msg_len = CommandLenType::from_be_bytes(msg_len_coded);
-    
+
         let mut msg_vec = vec![0u8; msg_len as usize];
         stream.read_exact(&mut msg_vec)?;
         let msg = String::from_utf8_lossy(&msg_vec).into_owned();
-    
+
         // check hashsum of the data
         let mut checksum = vec![0u8; 2];
         stream.read_exact(&mut checksum)?;
@@ -237,11 +230,11 @@ impl ServerResponse {
             );
             return Err(KVSError::GeneralKVSError);
         }
-    
+
         match resp_type {
             SUCCESS_BYTE => Ok(ServerResponse::Success { output: msg }),
             FAILURE_BYTE => Ok(ServerResponse::Failure { message: msg }),
             _ => Err(KVSError::GeneralKVSError),
         }
-    }    
+    }
 }
