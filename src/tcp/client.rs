@@ -3,6 +3,7 @@ use crate::tcp::protocol::{DBCommands, ServerResponse};
 use std::io::Write;
 use std::net::TcpStream;
 
+/// KVS client to communicate with server
 pub struct KVSClient {
     stream: TcpStream,
 }
